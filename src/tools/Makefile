@@ -1,4 +1,5 @@
-include ../Makefile
+srcdir = .
+VPATH = $(srcdir)
 
 TANGLEOBJS=$(OUTPUT)/notangle$(O) \
 	$(OUTPUT)/getline$(O) \
@@ -17,19 +18,14 @@ MARKUPOBJS=$(OUTPUT)/markmain$(O) \
 	$(OUTPUT)/getline$(O) \
 	$(OUTPUT)/columns$(O)
 
-# OBJS=$(TANGLEOBJS) $(MARKUPOBJS) $(OUTPUT)/l2htodo$(O) $(OUTPUT)/nocond$(O) $(OUTPUT)/tie$(O)
 OBJS=$(TANGLEOBJS) $(MARKUPOBJS) $(OUTPUT)/nocond$(O) $(OUTPUT)/tie$(O)
 
 TARGETS=$(OUTPUT)/markup$(E) \
 	$(OUTPUT)/nocond$(E) \
 	$(OUTPUT)/nt$(E) \
 	$(OUTPUT)/tie$(E)
-#  $(OUTPUT)/l2htodo$(E)
 
-all: $(TARGETS)
-
-$(OUTPUT)/l2htodo$(E): $(OUTPUT)/l2htodo$(O)
-	$(LD) $(LFLAGS)$@ $(OUTPUT)/l2htodo$(O)
+all: $(OUTPUT) $(TARGETS)
 
 $(OUTPUT)/markup$(E): $(MARKUPOBJS)
 	$(LD) $(LFLAGS)$@ $(MARKUPOBJS)
@@ -55,8 +51,6 @@ $(OUTPUT)/errors$(O):	errors.c errors.h
 	$(CC) $(CFLAGS)$@ errors.c
 $(OUTPUT)/getline$(O): getline.c columns.h errors.h getline.h
 	$(CC) $(CFLAGS)$@ getline.c
-# $(OUTPUT)/l2htodo$(O):	l2htodo.c
-# 	$(CC) $(CFLAGS)$@ l2htodo.c
 $(OUTPUT)/main$(O):	main.c columns.h errors.h modtrees.h modules.h notangle.h
 	$(CC) $(CFLAGS)$@ main.c
 $(OUTPUT)/markmain$(O):	markmain.c columns.h errors.h getline.h markup.h

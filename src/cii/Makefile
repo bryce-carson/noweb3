@@ -1,57 +1,55 @@
-# $Id$
-
-include ../nwconfig
-
 I=include
 MAXALIGN=-DMAXALIGN=$(CIIMAXALIGN)
 CIIFLAGS=-I$I $(MAXALIGN)
-B=$(OUTPUT)/
+BUILDDIR=$(OUTPUT)/
 
 # $Id$
-OBJS=	$Barena$O \
-	$Barray$O \
-	$Bassert$O \
-	$Batom$O \
-	$Bexcept$O \
-	$Bfmt$O \
-	$Blist$O \
-	$Bmem$O \
-	$Bseq$O \
-	$Bstr$O
+OBJS=	$(BUILDDIR)/arena.o \
+	$(BUILDDIR)/array.o \
+	$(BUILDDIR)/assert.o \
+	$(BUILDDIR)/atom.o \
+	$(BUILDDIR)/except.o \
+	$(BUILDDIR)/fmt.o \
+	$(BUILDDIR)/list.o \
+	$(BUILDDIR)/mem.o \
+	$(BUILDDIR)/seq.o \
+	$(BUILDDIR)/str.o
 
-all::		$Blibcii$A $Bmemchk$O
+all:: $(BUILDDIR)/libcii.so $(BUILDDIR)/memchk.o
 
-$Blibcii$A::	$(OBJS)
+$(BUILDDIR)libcii.so:: $(OBJS)
 		$(AR)$@ $(OBJS) && $(RANLIB) $@
 
-$Barena$O:	src/arena.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/arena.c
-$Barray$O:	src/array.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/array.c
-$Bassert$O:	src/assert.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/assert.c
-$Batom$O:	src/atom.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/atom.c
-$Bexcept$O:	src/except.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/except.c
-$Bfmt$O:	src/fmt.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/fmt.c
-$Blist$O:	src/list.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/list.c
-$Bmem$O:	src/mem.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/mem.c
-$Bmemchk$O:	src/memchk.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/memchk.c
-$Bseq$O:	src/seq.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/seq.c
-$Bstr$O:	src/str.c;	$(CC) $(CIIFLAGS) $(CFLAGS)$@ src/str.c
+$(BUILDDIR)/arena.o	: src/arena.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/arena.c
+$(BUILDDIR)/array.o	: src/array.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/array.c
+$(BUILDDIR)/assert.o : src/assert.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/assert.c
+$(BUILDDIR)/atom.o   : src/atom.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/atom.c
+$(BUILDDIR)/except.o : src/except.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/except.c
+$(BUILDDIR)/fmt.o		: src/fmt.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/fmt.c
+$(BUILDDIR)/list.o	 	: src/list.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/list.c
+$(BUILDDIR)/mem.o		: src/mem.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/mem.c
+$(BUILDDIR)/memchk.o : src/memchk.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/memchk.c
+$(BUILDDIR)/seq.o		: src/seq.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/seq.c
+$(BUILDDIR)/str.o		: src/str.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/str.c
+
+
 
 clean::
-		-$(RM) $(OBJS) 2>$(NUL)
+		-$(RM) $(OBJS)
 
 clobber::	clean
-		-$(RM) $Blibcii$A $B*$O 2>$(NUL)
+		-$(RM) $(BUILDDIR)/libcii$A $(BUILDDIR)/*.o
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-$Barena$O:	$I/assert.h $I/except.h $I/arena.h
-$Barray$O:	$I/assert.h $I/except.h $I/array.h $I/arrayrep.h $I/mem.h
-$Bassert$O:	$I/assert.h $I/except.h
-$Batom$O:	$I/atom.h $I/assert.h $I/except.h $I/mem.h
-$Bexcept$O:	$I/assert.h $I/except.h
-$Bfmt$O:	$I/assert.h $I/except.h $I/fmt.h $I/mem.h
-$Blist$O:	$I/assert.h $I/except.h $I/mem.h $I/list.h
-$Bmem$O:	$I/assert.h $I/except.h $I/mem.h
-$Bmemchk$O:	$I/assert.h $I/except.h $I/mem.h
-$Bseq$O:	$I/assert.h $I/except.h $I/seq.h $I/array.h $I/arrayrep.h $I/mem.h
-$Bstr$O:	$I/assert.h $I/except.h $I/fmt.h $I/str.h $I/mem.h
+$(BUILDDIR)/arena.o:		$I/assert.h $I/except.h $I/arena.h
+$(BUILDDIR)/array.o:		$I/assert.h $I/except.h $I/array.h	$I/arrayrep.h $I/mem.h
+$(BUILDDIR)/assert.o:	$I/assert.h $I/except.h
+$(BUILDDIR)/atom.o:		$I/atom.h		$I/assert.h $I/except.h $I/mem.h
+$(BUILDDIR)/except.o:	$I/assert.h $I/except.h
+$(BUILDDIR)/fmt.o:			$I/assert.h $I/except.h $I/fmt.h		$I/mem.h
+$(BUILDDIR)/list.o:		$I/assert.h $I/except.h $I/mem.h		$I/list.h
+$(BUILDDIR)/mem.o:			$I/assert.h $I/except.h $I/mem.h
+$(BUILDDIR)/memchk.o:	$I/assert.h $I/except.h $I/mem.h
+$(BUILDDIR)/seq.o:			$I/assert.h $I/except.h $I/seq.h		$I/array.h		$I/arrayrep.h $I/mem.h
+$(BUILDDIR)/str.o:			$I/assert.h $I/except.h $I/fmt.h		$I/str.h			$I/mem.h

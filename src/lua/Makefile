@@ -21,8 +21,8 @@ clobber: clean
 	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS) 2>$(NULL)
 
 install: $(SCRIPTS) $(CONFIG) $(STAGES)
-	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIB3)/$$i;                 done
-	for i in $(SCRIPTS);          do cp                         $$i   $(LIB3)/`basename $$i .nws`; done
+	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIBEXEC)/$$i;                 done
+	for i in $(SCRIPTS);          do cp                         $$i   $(LIBEXEC)/`basename $$i .nws`; done
 
 # Produce rules
 "$(guile (map (lambda (w) (path-expand (cpif (notangle tangle-options w) w) output)) '(list.nw set.nw totex.nw tohtml.nw noidx.nw elide.nw unmarkup.nw cat.nw stripconds.nw xchunks.nw lines.nw tangle.nw weave.nw)))"

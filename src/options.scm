@@ -1,4 +1,4 @@
-(use-modules (ice-9 format) (srfi srfi-1))
+(use-modules (ice-9 format) (srfi srfi-1) (rnrs base))
 
 (define options (make-hash-table))
 
@@ -143,11 +143,21 @@
         #nil
         "Utilities")
 
-;; Conditionally assign the value of the option, setting it only if it's not
-;; already defined in make.
-(define (option-set-gmk-conditionally opt entry)
-  (gmk-eval (format #f "~a?=~a" opt (option-get opt))))
-(hash-map->list option-set-gmk-conditionally options)
+;; Conditionally assign the value of the option to a variable, setting it only
+;; if it's not already defined in make.
+(hash-for-each
+ (lambda (opt entry)
+   (gmk-eval (format #f "~a ?= ~a" (symbol->string opt)
+                     (if (nil? (option-get opt))
+                         ""
+                         (option-get opt))))
+   (let* ((option-name (symbol->string opt))
+          (origin (gmk-expand (format #f "$(origin ~a)" option-name))))
+     (gmk-eval (format #f "$(info \"The origin of ~a is: ~a.\")" option-name origin))
+     (when (string=? "undefined" origin)
+       (gmk-eval (format #f "$(error \"~a was not defined properly by Guile!\")"
+                         option-name)))))
+ options)
 
 (when (string=? (gmk-expand "$(MAKECMDGOALS)") "help")
   (option-print))

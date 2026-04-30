@@ -1,263 +1,288 @@
 $(guile (load "options.scm"))
 
+## These are built-in make variables, and may as well be overridden with noweb
+## variants.
 TANGLE=notangle
 WEAVE=noweave
 
-# tangle-cpif:
-# 	$(TANGLE) $(TANGLEOPTS) -L"#line %L "\"cpif.nw"\"%N" -Rheader c/cpif.nw
+## INSTALL* is recommended by the GNU Coding Standards, and is extremely
+## prevalent. It also enables a more maintainable Makefile.
+INSTALL=install
+INSTALL_PROGRAM=$(INSTALL)
+INSTALL_DATA=$(INSTALL) -m 644
+
+
+
+## THE FOLLOWING SECTION IS FROM GROK, ANSWERING HOW TO SUPPORT OUT-OF-TREE BUILDS
+BUILDDIR ?= ../build
+VPATH = $(BUILDDIR)
+export VPATH
+
+# $(BUILDDIR)/%.o: %.c
+# 	@mkdir -p $(BUILDDIR)
+# 	$(CC) $(CFLAGS) -c $< -o $@
+
+# target: $(BUILDDIR)/main.o
+# 	$(CC) $^ -o $@
+## THE ABOVE SECTION IS FROM GROK, ANSWERING HOW TO SUPPORT OUT-OF-TREE BUILDS
+
+
+
+
+
+
+
 
 # Stop editing. No user-serviceable parts below.
 all: code scripts styles
 
 .PHONY: help
-help:
-	@echo $(info "GNU Make should be allowing GNU Guile to report some help information.")
 
-bootstrap:
-	-mkdir $(LIB3)/tools 2>$(NULL)
-	cd tools && $(MK) "OUTPUT=$(LIB3)/tools" && cd ..
+help:
+	@echo "GNU Make should be allowing GNU Guile to report some help information."
+
+tools: | $(BUILDDIR)$(LIBEXEC)/tools
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/tools
+	$(MAKE) -C tools "OUTPUT=$(BUILDDIR)$(LIBEXEC)/tools"
 
 ciilib:
-	-mkdir $(LIB3)/cii 2>$(NULL)
-	cd cii && $(MK) "OUTPUT=$(LIB3)/cii" && cd ..
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/cii
+	$(MAKE) -C cii "OUTPUT=$(LIBEXEC)/cii"
 
 lualib:
-	-mkdir $(LIB3)/lua-2.5 2>$(NULL)
-	cd lua-2.5 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)/lua-2.5" && cd ..
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/lua-2.5.1
+	$(MAKE) -C lua-2.5.1 $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-2.5.1"
 
 lualib3:
-	-mkdir $(LIB3)/lua-3.0 2>$(NULL)
-	cd lua-3.0 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)/lua-3.0" && cd ..
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/lua-3.2.2
+	$(MAKE) -C lua-3.2.2 $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-3.2.2"
 
-code: bootstrap ciilib lualib
-	-mkdir $(LIB3)/c 2>$(NULL)
-	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)/tools/markup | $(LIB3)/tools/nt" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-2.5" "LUALIB=$(LIB3)/lua-2.5" "OUTPUT=$(LIB3)/c" && cd ..
+code: tools ciilib lualib
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/c
+	$(MAKE) -C c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(LIBEXEC)/c"
 
-scripts: bootstrap
-	-mkdir $(LIB3)/lua 2>$(NULL)
-	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)/tools/markup | $(LIB3)/tools/nt" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
+scripts: tools
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/lua
+	$(MAKE) -C lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua"
 
-styles: bootstrap
-	-mkdir $(LIB3)/tex 2>$(NULL)
-	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)/tools/markup | $(LIB3)/tools/nt" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
+styles: tools
+	mkdir $(LIBEXEC)
+	mkdir $(LIBEXEC)/tex
+	$(MAKE) -C tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex"
 
 careful:
-	$(MK) clobber
-	$(MK) all clean
-	-$(RMDIR) $(LIB3)/first 2>$(NULL)
-	mkdir $(LIB3)/first
-	mkdir $(LIB3)/first/c
-	$(CPR) $(LIB3)/c/* $(LIB3)/first/c
-	mkdir $(LIB3)/first/lua
-	$(CPR) $(LIB3)/lua/* $(LIB3)/first/lua
-	mkdir $(LIB3)/first/tex
-	$(CPR) $(LIB3)/tex/* $(LIB3)/first/tex
-	$(MK) clobber
-	$(MK) bootstrap
-	$(MK) ciilib
-	$(MK) lualib
-	-mkdir $(LIB3)/c 2>$(NULL)
-	cd c && $(MK) "NWPATH=$(LIB3)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-2.5" "LUALIB=$(LIB3)/lua-2.5" "OUTPUT=$(LIB3)/c" && cd ..
-	-mkdir $(LIB3)/lua 2>$(NULL)
-	cd lua && $(MK) "NWPATH=$(LIB3)/first/lua" "NOTANGLE=$(LIB3)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
-	-mkdir $(LIB3)/tex 2>$(NULL)
-	cd tex && $(MK) "NWPATH=$(LIB3)/first/lua" "NOTANGLE=$(LIB3)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
+	$(MAKE) clobber
+	$(MAKE) all clean
+	-$(RMDIR) $(LIBEXEC)/first
+	mkdir $(LIBEXEC)/first
+	mkdir $(LIBEXEC)/first/c
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/first/c
+	mkdir $(LIBEXEC)/first/lua
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/first/lua
+	mkdir $(LIBEXEC)/first/tex
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/first/tex
+	$(MAKE) clobber
+	$(MAKE) tools
+	$(MAKE) ciilib
+	$(MAKE) lualib
+	-mkdir $(LIBEXEC)/c
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(LIBEXEC)/c" && cd ..
+	-mkdir $(LIBEXEC)/lua
+	$(MAKE) -C lua && "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua" && cd ..
+	-mkdir $(LIBEXEC)/tex
+	$(MAKE) -C tex && "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex" && cd ..
 	echo At this point we are attempting to build the literate version.
 	echo It may fail if you have not previously installed noweb.sty.
-	cd c && $(MK) "NWPATH=$(LIB3)/first/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	-$(RMDIR) $(LIB3)/first
-	$(MK) all clean
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/first/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	-$(RMDIR) $(LIBEXEC)/first
+	$(MAKE) all clean
 
 transfer:
-#	make 2 from bootstrap
-	$(MK) clobber
-	$(MK) all
-	cd c && $(MK) "NWPATH=$(LIB3)/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	mkdir $(LIB3)/2b
-	mkdir $(LIB3)/2b/c
-	mkdir $(LIB3)/2b/lua
-	mkdir $(LIB3)/2b/tex
-	$(CPR) $(LIB3)/c/* $(LIB3)/2b/c
-	$(CPR) $(LIB3)/lua/* $(LIB3)/2b/lua
-	$(CPR) $(LIB3)/tex/* $(LIB3)/2b/tex
-	$(MK) clean
-#	make 3 from bootstrap
-	$(MK) clobber
-	$(MK) bootstrap
-	$(MK) ciilib
-	$(MK) lualib3
-	mkdir $(LIB3)/c
-	mkdir $(LIB3)/lua
-	mkdir $(LIB3)/tex
-	cd c && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)/tools/markup | $(LIB3)/tools/nt" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-3.0" "LUALIB=$(LIB3)/lua-3.0" "OUTPUT=$(LIB3)/c" && cd ..
-	cd lua && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)/tools/markup | $(LIB3)/tools/nt" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
-	cd tex && $(MK) "NOTANGLE=more" "TANGLEOPTS= | $(LIB3)/tools/markup | $(LIB3)/tools/nt" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
-	cd c && $(MK) "NWPATH=$(LIB3)/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	mkdir $(LIB3)/3b
-	mkdir $(LIB3)/3b/c
-	mkdir $(LIB3)/3b/lua
-	mkdir $(LIB3)/3b/tex
-	$(CPR) $(LIB3)/c/* $(LIB3)/3b/c
-	$(CPR) $(LIB3)/lua/* $(LIB3)/3b/lua
-	$(CPR) $(LIB3)/tex/* $(LIB3)/3b/tex
-	$(MK) clean
+#	make 2 from tools
+	$(MAKE) clobber
+	$(MAKE) all
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	mkdir $(LIBEXEC)/2b
+	mkdir $(LIBEXEC)/2b/c
+	mkdir $(LIBEXEC)/2b/lua
+	mkdir $(LIBEXEC)/2b/tex
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/2b/c
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/2b/lua
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/2b/tex
+	$(MAKE) clean
+#	make 3 from tools
+	$(MAKE) clobber
+	$(MAKE) tools
+	$(MAKE) ciilib
+	$(MAKE) lualib3
+	mkdir $(LIBEXEC)/c
+	mkdir $(LIBEXEC)/lua
+	mkdir $(LIBEXEC)/tex
+	$(MAKE) -C c && "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-3.0" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(LIBEXEC)/c" && cd ..
+	$(MAKE) -C lua && "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua" && cd ..
+	$(MAKE) -C tex && "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex" && cd ..
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	mkdir $(LIBEXEC)/3b
+	mkdir $(LIBEXEC)/3b/c
+	mkdir $(LIBEXEC)/3b/lua
+	mkdir $(LIBEXEC)/3b/tex
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/3b/c
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/3b/lua
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/3b/tex
+	$(MAKE) clean
 #	make 2 from 2
-	$(MK) clobber
-	$(MK) bootstrap
-	$(MK) ciilib
-	$(MK) lualib
-	mkdir $(LIB3)/c
-	mkdir $(LIB3)/lua
-	mkdir $(LIB3)/tex
-	mkdir $(LIB3)/22
-	mkdir $(LIB3)/22/c
-	mkdir $(LIB3)/22/lua
-	mkdir $(LIB3)/22/tex
-	cd c && $(MK) "NWPATH=$(LIB3)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)/2b/c/no tangle" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-2.5" "LUALIB=$(LIB3)/lua-2.5" "OUTPUT=$(LIB3)/c" && cd ..
-	cd lua && $(MK) "NWPATH=$(LIB3)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)/2b/c/no tangle" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
-	cd tex && $(MK) "NWPATH=$(LIB3)/2b/lua" "NOTANGLE=$(LIB3)/2b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
-	cd c && $(MK) "NWPATH=$(LIB3)/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	$(CPR) $(LIB3)/c/* $(LIB3)/22/c
-	$(CPR) $(LIB3)/lua/* $(LIB3)/22/lua
-	$(CPR) $(LIB3)/tex/* $(LIB3)/22/tex
-	$(MK) clean
+	$(MAKE) clobber
+	$(MAKE) tools
+	$(MAKE) ciilib
+	$(MAKE) lualib
+	mkdir $(LIBEXEC)/c
+	mkdir $(LIBEXEC)/lua
+	mkdir $(LIBEXEC)/tex
+	mkdir $(LIBEXEC)/22
+	mkdir $(LIBEXEC)/22/c
+	mkdir $(LIBEXEC)/22/lua
+	mkdir $(LIBEXEC)/22/tex
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/2b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(LIBEXEC)/c" && cd ..
+	$(MAKE) -C lua && "NWPATH=$(LIBEXEC)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/2b/c/no tangle" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua" && cd ..
+	$(MAKE) -C tex && "NWPATH=$(LIBEXEC)/2b/lua" "NOTANGLE=$(LIBEXEC)/2b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex" && cd ..
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/22/c
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/22/lua
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/22/tex
+	$(MAKE) clean
 #	make 3 from 2
-	$(MK) clobber
-	$(MK) bootstrap
-	$(MK) ciilib
-	$(MK) lualib3
-	mkdir $(LIB3)/c
-	mkdir $(LIB3)/lua
-	mkdir $(LIB3)/tex
-	mkdir $(LIB3)/32
-	mkdir $(LIB3)/32/c
-	mkdir $(LIB3)/32/lua
-	mkdir $(LIB3)/32/tex
-	cd c && $(MK) "NWPATH=$(LIB3)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)/2b/c/no tangle" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-3.0" "LUALIB=$(LIB3)/lua-3.0" "OUTPUT=$(LIB3)/c" && cd ..
-	cd lua && $(MK) "NWPATH=$(LIB3)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)/2b/c/no tangle" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
-	cd tex && $(MK) "NWPATH=$(LIB3)/2b/lua" "NOTANGLE=$(LIB3)/2b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
-	cd c && $(MK) "NWPATH=$(LIB3)/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	$(CPR) $(LIB3)/c/* $(LIB3)/32/c
-	$(CPR) $(LIB3)/lua/* $(LIB3)/32/lua
-	$(CPR) $(LIB3)/tex/* $(LIB3)/32/tex
-	$(MK) clean
+	$(MAKE) clobber
+	$(MAKE) tools
+	$(MAKE) ciilib
+	$(MAKE) lualib3
+	mkdir $(LIBEXEC)/c
+	mkdir $(LIBEXEC)/lua
+	mkdir $(LIBEXEC)/tex
+	mkdir $(LIBEXEC)/32
+	mkdir $(LIBEXEC)/32/c
+	mkdir $(LIBEXEC)/32/lua
+	mkdir $(LIBEXEC)/32/tex
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIBEXEC)/2b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-3.0" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(LIBEXEC)/c" && cd ..
+	$(MAKE) -C lua && "NWPATH=$(LIBEXEC)/2b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIBEXEC)/2b/c/no tangle" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua" && cd ..
+	$(MAKE) -C tex && "NWPATH=$(LIBEXEC)/2b/lua" "NOTANGLE=$(LIBEXEC)/2b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex" && cd ..
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/32/c
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/32/lua
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/32/tex
+	$(MAKE) clean
 #	make 2 from 3
-	$(MK) clobber
-	$(MK) bootstrap
-	$(MK) ciilib
-	$(MK) lualib
-	mkdir $(LIB3)/c
-	mkdir $(LIB3)/lua
-	mkdir $(LIB3)/tex
-	mkdir $(LIB3)/23
-	mkdir $(LIB3)/23/c
-	mkdir $(LIB3)/23/lua
-	mkdir $(LIB3)/23/tex
-	cd c && $(MK) "NWPATH=$(LIB3)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIB3)/3b/c/no tangle" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-2.5" "LUALIB=$(LIB3)/lua-2.5" "OUTPUT=$(LIB3)/c" && cd ..
-	cd lua && $(MK) "NWPATH=$(LIB3)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIB3)/3b/c/no tangle" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
-	cd tex && $(MK) "NWPATH=$(LIB3)/3b/lua" "NOTANGLE=$(LIB3)/3b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
-	cd c && $(MK) "NWPATH=$(LIB3)/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	$(CPR) $(LIB3)/c/* $(LIB3)/23/c
-	$(CPR) $(LIB3)/lua/* $(LIB3)/23/lua
-	$(CPR) $(LIB3)/tex/* $(LIB3)/23/tex
-	$(MK) clean
+	$(MAKE) clobber
+	$(MAKE) tools
+	$(MAKE) ciilib
+	$(MAKE) lualib
+	mkdir $(LIBEXEC)/c
+	mkdir $(LIBEXEC)/lua
+	mkdir $(LIBEXEC)/tex
+	mkdir $(LIBEXEC)/23
+	mkdir $(LIBEXEC)/23/c
+	mkdir $(LIBEXEC)/23/lua
+	mkdir $(LIBEXEC)/23/tex
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/3b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(LIBEXEC)/c" && cd ..
+	$(MAKE) -C lua && "NWPATH=$(LIBEXEC)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/3b/c/no tangle" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua" && cd ..
+	$(MAKE) -C tex && "NWPATH=$(LIBEXEC)/3b/lua" "NOTANGLE=$(LIBEXEC)/3b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex" && cd ..
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/23/c
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/23/lua
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/23/tex
+	$(MAKE) clean
 #	make 3 from 3
-	$(MK) clobber
-	$(MK) bootstrap
-	$(MK) ciilib
-	$(MK) lualib3
-	mkdir $(LIB3)/c
-	mkdir $(LIB3)/lua
-	mkdir $(LIB3)/tex
-	mkdir $(LIB3)/33
-	mkdir $(LIB3)/33/c
-	mkdir $(LIB3)/33/lua
-	mkdir $(LIB3)/33/tex
-	cd c && $(MK) "NWPATH=$(LIB3)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIB3)/3b/c/no tangle" "CPIF=>" "TOOLS=$(LIB3)/tools" "LUA=../lua-3.0" "LUALIB=$(LIB3)/lua-3.0" "OUTPUT=$(LIB3)/c" && cd ..
-	cd lua && $(MK) "NWPATH=$(LIB3)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIB3)/3b/c/no tangle" "CPIF=>" "OUTPUT=$(LIB3)/lua" && cd ..
-	cd tex && $(MK) "NWPATH=$(LIB3)/3b/lua" "NOTANGLE=$(LIB3)/3b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIB3)/tex" && cd ..
-	cd c && $(MK) "NWPATH=$(LIB3)/lua" "OUTPUT=$(LIB3)/c" doc && cd ..
-	$(CPR) $(LIB3)/c/* $(LIB3)/33/c
-	$(CPR) $(LIB3)/lua/* $(LIB3)/33/lua
-	$(CPR) $(LIB3)/tex/* $(LIB3)/33/tex
-	$(MK) clean
-	$(MK) checkclean
-	echo Let's see how different it is.
-	pause
-	$(MK) checkdifferent
-	echo Let's see how similar it is.
-	pause
-	$(MK) checksame
-	pause
+	$(MAKE) clobber
+	$(MAKE) tools
+	$(MAKE) ciilib
+	$(MAKE) lualib3
+	mkdir $(LIBEXEC)/c
+	mkdir $(LIBEXEC)/lua
+	mkdir $(LIBEXEC)/tex
+	mkdir $(LIBEXEC)/33
+	mkdir $(LIBEXEC)/33/c
+	mkdir $(LIBEXEC)/33/lua
+	mkdir $(LIBEXEC)/33/tex
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIBEXEC)/3b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-3.0" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(LIBEXEC)/c" && cd ..
+	$(MAKE) -C lua && "NWPATH=$(LIBEXEC)/3b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIBEXEC)/3b/c/no tangle" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua" && cd ..
+	$(MAKE) -C tex && "NWPATH=$(LIBEXEC)/3b/lua" "NOTANGLE=$(LIBEXEC)/3b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex" && cd ..
+	$(MAKE) -C c && "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/33/c
+	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/33/lua
+	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/33/tex
+	$(MAKE) clean
+	$(MAKE) checkclean
+	@echo "Let's see how different it is..."
+	sleep 1
+	$(MAKE) checkdifferent
+	@echo "Let's see how similar it is..."
+	sleep 1
+	$(MAKE) checksame
+	sleep 1
 
 checkclean:
-	$(RM) $(LIB3)/2b\c\*.exe $(LIB3)/2b\c\*.log $(LIB3)/2b\c\*.obj $(LIB3)/2b\c\*.pdf
-	$(RM) $(LIB3)/22\c\*.exe $(LIB3)/22\c\*.log $(LIB3)/22\c\*.obj $(LIB3)/22\c\*.pdf
-	$(RM) $(LIB3)/23\c\*.exe $(LIB3)/23\c\*.log $(LIB3)/23\c\*.obj $(LIB3)/23\c\*.pdf
-	$(RM) $(LIB3)/3b\c\*.exe $(LIB3)/3b\c\*.log $(LIB3)/3b\c\*.obj $(LIB3)/3b\c\*.pdf
-	$(RM) $(LIB3)/32\c\*.exe $(LIB3)/32\c\*.log $(LIB3)/32\c\*.obj $(LIB3)/32\c\*.pdf
-	$(RM) $(LIB3)/33\c\*.exe $(LIB3)/33\c\*.log $(LIB3)/33\c\*.obj $(LIB3)/33\c\*.pdf
+	$(RM) $(LIBEXEC)/2b\c\*.exe $(LIBEXEC)/2b\c\*.log $(LIBEXEC)/2b\c\*.obj $(LIBEXEC)/2b\c\*.pdf
+	$(RM) $(LIBEXEC)/22\c\*.exe $(LIBEXEC)/22\c\*.log $(LIBEXEC)/22\c\*.obj $(LIBEXEC)/22\c\*.pdf
+	$(RM) $(LIBEXEC)/23\c\*.exe $(LIBEXEC)/23\c\*.log $(LIBEXEC)/23\c\*.obj $(LIBEXEC)/23\c\*.pdf
+	$(RM) $(LIBEXEC)/3b\c\*.exe $(LIBEXEC)/3b\c\*.log $(LIBEXEC)/3b\c\*.obj $(LIBEXEC)/3b\c\*.pdf
+	$(RM) $(LIBEXEC)/32\c\*.exe $(LIBEXEC)/32\c\*.log $(LIBEXEC)/32\c\*.obj $(LIBEXEC)/32\c\*.pdf
+	$(RM) $(LIBEXEC)/33\c\*.exe $(LIBEXEC)/33\c\*.log $(LIBEXEC)/33\c\*.obj $(LIBEXEC)/33\c\*.pdf
 
 checkdifferent:
-	windiff $(LIB3)/2b $(LIB3)/3b
-	windiff $(LIB3)/2b $(LIB3)/32
-	windiff $(LIB3)/2b $(LIB3)/33
-	windiff $(LIB3)/22 $(LIB3)/3b
-	windiff $(LIB3)/22 $(LIB3)/32
-	windiff $(LIB3)/22 $(LIB3)/33
-	windiff $(LIB3)/23 $(LIB3)/3b
-	windiff $(LIB3)/23 $(LIB3)/32
-	windiff $(LIB3)/23 $(LIB3)/33
+	windiff $(LIBEXEC)/2b $(LIBEXEC)/3b
+	windiff $(LIBEXEC)/2b $(LIBEXEC)/32
+	windiff $(LIBEXEC)/2b $(LIBEXEC)/33
+	windiff $(LIBEXEC)/22 $(LIBEXEC)/3b
+	windiff $(LIBEXEC)/22 $(LIBEXEC)/32
+	windiff $(LIBEXEC)/22 $(LIBEXEC)/33
+	windiff $(LIBEXEC)/23 $(LIBEXEC)/3b
+	windiff $(LIBEXEC)/23 $(LIBEXEC)/32
+	windiff $(LIBEXEC)/23 $(LIBEXEC)/33
 
 checksame:
-	windiff $(LIB3)/2b $(LIB3)/22
-	windiff $(LIB3)/22 $(LIB3)/23
-	windiff $(LIB3)/3b $(LIB3)/32
-	windiff $(LIB3)/32 $(LIB3)/33
+	windiff $(LIBEXEC)/2b $(LIBEXEC)/22
+	windiff $(LIBEXEC)/22 $(LIBEXEC)/23
+	windiff $(LIBEXEC)/3b $(LIBEXEC)/32
+	windiff $(LIBEXEC)/32 $(LIBEXEC)/33
 
 pdf: install
-	-mkdir $(LIB3)/c 2>$(NULL)
-	cd c && $(MK) "OUTPUT=$(LIB3)/c" doc && cd ..
-
-everything: all todo.html
+	-mkdir $(LIBEXEC)/c
+	$(MAKE) -C c && "OUTPUT=$(LIBEXEC)/c" doc && cd ..
 
 install: install-code install-scripts install-styles
 
 install-code: code
-	$(CP) $(LIB3)/c/no$(E) $(BINDIR)
-	$(CP) $(LIB3)/c/nwmtime$(E) $(BINDIR)
+	$(INSTALL_PROGRAM) $(LIBEXEC)/c/no$(E) $(LIBEXEC)/c/nwmtime$(E) $(DESTDIR)$(BINDIR)
 
 install-scripts: scripts
-	$(CP) $(LIB3)/lua/* $(BINDIR)
+	$(INSTALL_PROGRAM) $(LIBEXEC)/lua/* $(DESTDIR)$(BINDIR)
 
 install-styles: styles
-	$(CP) $(LIB3)/tex/noweb.sty $(TEXINPUTS)/latex/misc/noweb.sty
-	$(CP) $(LIB3)/tex/nwmac.tex $(TEXINPUTS)/generic/misc/nwmac.tex
-
-$(LIB3)/todo.html: bootstrap todo.nw
-	no weave -html todo.nw | $(LIB3)/tools/l2htodo > $(LIB3)/todo.html
-
-# Not configurable by nwconfig because this is an author only command.
-www: $(LIB3)/todo.html
-	$(CP) $(LIB3)/todo.html /home/cellar/nr/www/noweb/todo3.html
+	$(CP) $(LIBEXEC)/tex/noweb.sty $(TEXINPUTS)/latex/misc/noweb.sty
+	$(CP) $(LIBEXEC)/tex/nwmac.tex $(TEXINPUTS)/generic/misc/nwmac.tex
 
 clean:
-	cd tools && $(MK) "OUTPUT=$(LIB3)/tools" clobber && cd ..
-	-$(RMDIR) $(LIB3)/tools 2>$(NULL)
-	cd cii && $(MK) "OUTPUT=$(LIB3)/cii" clobber && cd ..
-	-$(RMDIR) $(LIB3)/cii 2>$(NULL)
-	cd lua-2.5 && $(MK) $(LuaMakefile) "OUTPUT=$(LIB3)/lua-2.5" clobber && cd ..
-	-$(RMDIR) $(LIB3)/lua-2.5 2>$(NULL)
-	cd c && $(MK) "OUTPUT=$(LIB3)/c" clean && cd ..
-	cd lua && $(MK) "OUTPUT=$(LIB3)/lua" clean && cd ..
-	cd tex && $(MK) "OUTPUT=$(LIB3)/tex" clean && cd ..
-	-$(RM) *~ 2>$(NULL)
+	$(MAKE) -C tools && "OUTPUT=$(LIBEXEC)/tools" clobber && cd ..
+	-$(RMDIR) $(LIBEXEC)/tools
+	$(MAKE) -C cii && "OUTPUT=$(LIBEXEC)/cii" clobber && cd ..
+	-$(RMDIR) $(LIBEXEC)/cii
+	$(MAKE) -C lua-2.5 && $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-2.5" clobber && cd ..
+	-$(RMDIR) $(LIBEXEC)/lua-2.5
+	$(MAKE) -C c && "OUTPUT=$(LIBEXEC)/c" clean && cd ..
+	$(MAKE) -C lua && "OUTPUT=$(LIBEXEC)/lua" clean && cd ..
+	$(MAKE) -C tex && "OUTPUT=$(LIBEXEC)/tex" clean && cd ..
+	-$(RM) *~
 
 clobber: clean
-	cd c && $(MK) "OUTPUT=$(LIB3)/c" clobber && cd ..
-	-$(RMDIR) $(LIB3)/c 2>$(NULL)
-	cd lua && $(MK) "OUTPUT=$(LIB3)/lua" clobber && cd ..
-	-$(RMDIR) $(LIB3)/lua 2>$(NULL)
-	cd tex && $(MK) "OUTPUT=$(LIB3)/tex" clobber && cd ..
-	-$(RMDIR) $(LIB3)/tex 2>$(NULL)
-	-$(RM) *.html 2>$(NULL)
+	$(MAKE) -C c && "OUTPUT=$(LIBEXEC)/c" clobber && cd ..
+	-$(RMDIR) $(LIBEXEC)/c
+	$(MAKE) -C lua && "OUTPUT=$(LIBEXEC)/lua" clobber && cd ..
+	-$(RMDIR) $(LIBEXEC)/lua
+	$(MAKE) -C tex && "OUTPUT=$(LIBEXEC)/tex" clobber && cd ..
+	-$(RMDIR) $(LIBEXEC)/tex
+	-$(RM) *.html
