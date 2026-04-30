@@ -122,67 +122,68 @@ The top-level makefile parses the make command-line options and validates them.
 
   all: code scripts styles
 
-  tools: | $(BUILDDIR)$(LIBEXEC)/tools
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/tools
+  tools:
+  	mkdir $(LIBEXEC) $(LIBEXEC)/tools
   	$(MAKE) -C tools "OUTPUT=$(BUILDDIR)$(LIBEXEC)/tools"
 
   ciilib:
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/cii
+  	mkdir $(LIBEXEC) $(LIBEXEC)/cii
   	$(MAKE) -C cii "OUTPUT=$(LIBEXEC)/cii"
 
   lualib:
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/lua-2.5.1
+  	mkdir $(LIBEXEC) $(LIBEXEC)/lua-2.5.1
   	$(MAKE) -C lua-2.5.1 $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-2.5.1"
 
   lualib3:
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/lua-3.2.2
+  	mkdir $(LIBEXEC) $(LIBEXEC)/lua-3.2.2
   	$(MAKE) -C lua-3.2.2 $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-3.2.2"
 
   code: tools ciilib lualib
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/c
+  	mkdir $(LIBEXEC) $(LIBEXEC)/c
   	$(MAKE) -C c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(LIBEXEC)/c"
 
   scripts: tools
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/lua
+  	mkdir $(LIBEXEC) $(LIBEXEC)/lua
   	$(MAKE) -C lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua"
 
   styles: tools
-  	mkdir $(LIBEXEC)
-  	mkdir $(LIBEXEC)/tex
+  	mkdir $(LIBEXEC) $(LIBEXEC)/tex
   	$(MAKE) -C tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex"
 
   careful:
   	$(MAKE) clobber
-  	$(MAKE) all clean
+  	$(MAKE) all
+  	$(MAKE) clean
   	-$(RMDIR) $(LIBEXEC)/first
-  	mkdir $(LIBEXEC)/first
-  	mkdir $(LIBEXEC)/first/c
+  	mkdir $(addprefix $(LIBEXEC)/,first first/c first/lua first/tex)
   	cp -R $(LIBEXEC)/c/* $(LIBEXEC)/first/c
-  	mkdir $(LIBEXEC)/first/lua
   	cp -R $(LIBEXEC)/lua/* $(LIBEXEC)/first/lua
-  	mkdir $(LIBEXEC)/first/tex
   	cp -R $(LIBEXEC)/tex/* $(LIBEXEC)/first/tex
+
   	$(MAKE) clobber
   	$(MAKE) tools
   	$(MAKE) ciilib
   	$(MAKE) lualib
   	-mkdir $(LIBEXEC)/c
   	$(MAKE) -C c "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(LIBEXEC)/c"
+
   	-mkdir $(LIBEXEC)/lua
   	$(MAKE) -C lua "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/lua"
+
   	-mkdir $(LIBEXEC)/tex
   	$(MAKE) -C tex "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(LIBEXEC)/tex"
+
   	echo At this point we are attempting to build the literate version.
   	echo It may fail if you have not previously installed noweb.sty.
+
   	$(MAKE) -C c "NWPATH=$(LIBEXEC)/first/lua" "OUTPUT=$(LIBEXEC)/c" doc
   	-$(RMDIR) $(LIBEXEC)/first
+
   	$(MAKE) all clean
+
+
+
+
 
   transfer:
   #	make 2 from tools
@@ -242,6 +243,7 @@ The top-level makefile parses the make command-line options and validates them.
   	$(MAKE) -C c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(LIBEXEC)/c" doc
   	$(foreach d,c lua tex,cp -R $(wildcard $(LIBEXEC)/${d}/*) $(LIBEXEC)/33/${d})
 
+
   # check differences
   	$(MAKE) clean
   	$(MAKE) checkclean
@@ -252,6 +254,10 @@ The top-level makefile parses the make command-line options and validates them.
   	sleep 1
   	$(MAKE) checksame
   	sleep 1
+
+
+
+
 
   checkclean:
   	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(LIBEXEC)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.pdf)))
@@ -267,7 +273,7 @@ The top-level makefile parses the make command-line options and validates them.
 
   pdf: install
   	-mkdir $(LIBEXEC)/c
-  	$(MAKE) -C c && "OUTPUT=$(LIBEXEC)/c" doc && cd ..
+  	$(MAKE) -C c "OUTPUT=$(LIBEXEC)/c" doc
 
   install: install-code install-scripts install-styles
 
@@ -281,26 +287,34 @@ The top-level makefile parses the make command-line options and validates them.
   	$(CP) $(LIBEXEC)/tex/noweb.sty $(TEXINPUTS)/latex/misc/noweb.sty
   	$(CP) $(LIBEXEC)/tex/nwmac.tex $(TEXINPUTS)/generic/misc/nwmac.tex
 
+
+
   clean:
-  	$(MAKE) -C tools && "OUTPUT=$(LIBEXEC)/tools" clobber && cd ..
+  	$(MAKE) -C tools "OUTPUT=$(LIBEXEC)/tools" clobber
   	-$(RMDIR) $(LIBEXEC)/tools
-  	$(MAKE) -C cii && "OUTPUT=$(LIBEXEC)/cii" clobber && cd ..
+
+  	$(MAKE) -C cii "OUTPUT=$(LIBEXEC)/cii" clobber
   	-$(RMDIR) $(LIBEXEC)/cii
-  	$(MAKE) -C lua-2.5 && $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-2.5" clobber && cd ..
+
+  	$(MAKE) -C lua-2.5 $(LuaMakefile) "OUTPUT=$(LIBEXEC)/lua-2.5" clobber
   	-$(RMDIR) $(LIBEXEC)/lua-2.5
-  	$(MAKE) -C c && "OUTPUT=$(LIBEXEC)/c" clean && cd ..
-  	$(MAKE) -C lua && "OUTPUT=$(LIBEXEC)/lua" clean && cd ..
-  	$(MAKE) -C tex && "OUTPUT=$(LIBEXEC)/tex" clean && cd ..
+
+  	$(MAKE) -C c "OUTPUT=$(LIBEXEC)/c" clean
+  	$(MAKE) -C lua "OUTPUT=$(LIBEXEC)/lua" clean
+  	$(MAKE) -C tex "OUTPUT=$(LIBEXEC)/tex" clean
   	-$(RM) *~
 
+
+
   clobber: clean
-  	$(MAKE) -C c && "OUTPUT=$(LIBEXEC)/c" clobber && cd ..
+  	$(MAKE) -C c "OUTPUT=$(LIBEXEC)/c" clobber
   	-$(RMDIR) $(LIBEXEC)/c
-  	$(MAKE) -C lua && "OUTPUT=$(LIBEXEC)/lua" clobber && cd ..
+
+  	$(MAKE) -C lua "OUTPUT=$(LIBEXEC)/lua" clobber
   	-$(RMDIR) $(LIBEXEC)/lua
-  	$(MAKE) -C tex && "OUTPUT=$(LIBEXEC)/tex" clobber && cd ..
+
+  	$(MAKE) -C tex "OUTPUT=$(LIBEXEC)/tex" clobber
   	-$(RMDIR) $(LIBEXEC)/tex
-  	-$(RM) *.html
 #+end_src
 
 *** Guile-validated options
