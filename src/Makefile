@@ -30,15 +30,21 @@ VPATH = $(BUILDDIR)
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
 
-.PHONY: help
+.PHONY: help transfer
 
 help:
-	@echo "GNU Make should be allowing GNU Guile to report some help information."
+	@echo "GNU Make should have allowed the embedded guile process to report some helpful information."
 
 all: code scripts styles
 
+installdirs: mkinstalldirs
+	$(DESTDIR)$(LIBEXEC)
+
 buildexec=$(BUILDDIR)$(LIBEXEC)
-build= | $(buildexec)
+build=mkinstalldirs | $(buildexec)
+
+$(buildexec): mkinstalldirs ;
+	$(srcdir)/mkinstalldirs $(buildexec)
 
 tools: $(build)
 	mkdir $(buildexec)/tools
