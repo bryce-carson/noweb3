@@ -1,73 +1,52 @@
-srcdir = .
-VPATH = $(srcdir)
+$(if $(findstring "undefined",$(origin OUTPUT)), $(error "The variable OUTPUT was undefined!"))
 
-TANGLEOBJS=$(OUTPUT)/notangle$(O) \
-	$(OUTPUT)/getline$(O) \
-	$(OUTPUT)/match$(O) \
-	$(OUTPUT)/modules$(O) \
-	$(OUTPUT)/modtrees$(O) \
-	$(OUTPUT)/strsave$(O) \
-	$(OUTPUT)/main$(O) \
-	$(OUTPUT)/errors$(O) \
-	$(OUTPUT)/columns$(O)
+TANGLEOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,notangle getline match modules modtrees strsave main errors columns))
+MARKUPOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,markmain strsave markup errors getline columns))
+OBJS=$(TANGLEOBJS) $(MARKUPOBJS) $(OUTPUT)/nocond.o $(OUTPUT)/tie.o
 
-MARKUPOBJS=$(OUTPUT)/markmain$(O) \
-	$(OUTPUT)/strsave$(O) \
-	$(OUTPUT)/markup$(O) \
-	$(OUTPUT)/errors$(O) \
-	$(OUTPUT)/getline$(O) \
-	$(OUTPUT)/columns$(O)
+all: $(OUTPUT) $(addprefix $(OUTPUT)/,markup nocond nt tie)
 
-OBJS=$(TANGLEOBJS) $(MARKUPOBJS) $(OUTPUT)/nocond$(O) $(OUTPUT)/tie$(O)
+$(OUTPUT)/markup: $(MARKUPOBJS)
+	$(CC) -o$@ $(LDFLAGS) $^
 
-TARGETS=$(OUTPUT)/markup$(E) \
-	$(OUTPUT)/nocond$(E) \
-	$(OUTPUT)/nt$(E) \
-	$(OUTPUT)/tie$(E)
+$(OUTPUT)/nt: $(TANGLEOBJS)
+	$(CC) -o$@ $(LDFLAGS) $^
 
-all: $(OUTPUT) $(TARGETS)
+$(OUTPUT)/nocond: $(OUTPUT)/nocond.o
+	$(CC) -o$@ $(LDFLAGS) $^
 
-$(OUTPUT)/markup$(E): $(MARKUPOBJS)
-	$(LD) $(LFLAGS)$@ $(MARKUPOBJS)
-
-$(OUTPUT)/nocond$(E): $(OUTPUT)/nocond$(O)
-	$(LD) $(LFLAGS)$@ $(OUTPUT)/nocond$(O)
-
-$(OUTPUT)/nt$(E): $(TANGLEOBJS)
-	$(LD) $(LFLAGS)$@ $(TANGLEOBJS)
-
-$(OUTPUT)/tie$(E): $(OUTPUT)/tie$(O)
-	$(LD) $(LFLAGS)$@ $(OUTPUT)/tie$(O)
+$(OUTPUT)/tie: $(OUTPUT)/tie.o
+	$(CC) -o$@ $(LDFLAGS) $^
 
 clean:
-	-$(RM) $(OBJS) 2>$(NUL)
+	-$(RM) $(OBJS)
 
 clobber: clean
-	-$(RM) $(TARGETS) 2>$(NUL)
+	-$(RM) $(addprefix $(OUTPUT)/,markup nocond nt tie)
 
-$(OUTPUT)/columns$(O):	columns.c columns.h
-	$(CC) $(CFLAGS)$@ columns.c
-$(OUTPUT)/errors$(O):	errors.c errors.h
-	$(CC) $(CFLAGS)$@ errors.c
-$(OUTPUT)/getline$(O): getline.c columns.h errors.h getline.h
-	$(CC) $(CFLAGS)$@ getline.c
-$(OUTPUT)/main$(O):	main.c columns.h errors.h modtrees.h modules.h notangle.h
-	$(CC) $(CFLAGS)$@ main.c
-$(OUTPUT)/markmain$(O):	markmain.c columns.h errors.h getline.h markup.h
-	$(CC) $(CFLAGS)$@ markmain.c
-$(OUTPUT)/markup$(O):	markup.c errors.h markup.h strsave.h
-	$(CC) $(CFLAGS)$@ markup.c
-$(OUTPUT)/match$(O):	match.c match.h
-	$(CC) $(CFLAGS)$@ match.c
-$(OUTPUT)/modtrees$(O):	modtrees.c errors.h modtrees.h modules.h strsave.h
-	$(CC) $(CFLAGS)$@ modtrees.c
-$(OUTPUT)/modules$(O):	modules.c columns.h errors.h modtrees.h modules.h strsave.h
-	$(CC) $(CFLAGS)$@ modules.c
-$(OUTPUT)/nocond$(O):	nocond.c
-	$(CC) $(CFLAGS)$@ nocond.c
-$(OUTPUT)/notangle$(O):	notangle.c errors.h getline.h modtrees.h modules.h notangle.h strsave.h
-	$(CC) $(CFLAGS)$@ notangle.c
-$(OUTPUT)/strsave$(O):	strsave.c errors.h strsave.h
-	$(CC) $(CFLAGS)$@ strsave.c
-$(OUTPUT)/tie$(O):	tie.c
-	$(CC) $(CFLAGS)$@ tie.c
+$(OUTPUT)/columns.o:	columns.c columns.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ columns.c
+$(OUTPUT)/errors.o:	errors.c errors.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ errors.c
+$(OUTPUT)/getline.o: getline.c columns.h errors.h getline.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ getline.c
+$(OUTPUT)/main.o:	main.c columns.h errors.h modtrees.h modules.h notangle.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ main.c
+$(OUTPUT)/markmain.o:	markmain.c columns.h errors.h getline.h markup.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ markmain.c
+$(OUTPUT)/markup.o:	markup.c errors.h markup.h strsave.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ markup.c
+$(OUTPUT)/match.o:	match.c match.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ match.c
+$(OUTPUT)/modtrees.o:	modtrees.c errors.h modtrees.h modules.h strsave.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ modtrees.c
+$(OUTPUT)/modules.o:	modules.c columns.h errors.h modtrees.h modules.h strsave.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ modules.c
+$(OUTPUT)/nocond.o:	nocond.c
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ nocond.c
+$(OUTPUT)/notangle.o:	notangle.c errors.h getline.h modtrees.h modules.h notangle.h strsave.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ notangle.c
+$(OUTPUT)/strsave.o:	strsave.c errors.h strsave.h
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ strsave.c
+$(OUTPUT)/tie.o:	tie.c
+	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ tie.c

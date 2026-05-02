@@ -77,7 +77,7 @@
         (lambda (v) (and (string? v) (file-exists? v)))
         "C Compilation")
 
-(option 'CFLAGS #nil
+(option 'CFLAGS "-ansi -pedantic -std=c11 -c"
         "General C compilation flags used througout the entire C build process."
         #nil
         "C Compilation")
@@ -87,23 +87,23 @@
         #nil
         "C Compilation")
 
-(option 'LD #nil
+(option 'LD "gcc"
         "A C linker-loader."
         #nil
         "C Compilation")
 
-(option 'LDFLAGS #nil
+(option 'LDFLAGS "-lc"
         "Compilation flags for the linking stage, pased to ``ld''."
         #nil
         "C Compilation")
 
 (option 'LIBPROLOGUE #nil
-        "Options and flags passed to LINKER_LOADER prior to listing libraries; i.e. anything you need to write after listing libraries. It is used like the following: ld $LFLAGS $NOOBJS $LIBPROLOGUE ../cii/libcii ../lua/liblua.so ../lua/liblualibs.so $LIBEPILOGUE."
+        "Options and flags passed to the linker-loader prior to listing libraries; i.e. anything you need to write after listing libraries. It is used like the following: ld $LFLAGS $NOOBJS $LIBPROLOGUE ../cii/libcii ../lua/liblua.so ../lua/liblualibs.so $LIBEPILOGUE."
         #nil
         "C Compilation")
 
 (option 'LIBEPILOGUE #nil
-        "Options and flags passed to LINKER_LOADER after listing libraries; i.e. anything you need to write after listing libraries. It is used like the following: ld $LFLAGS $NOOBJS $LIBPROLOGUE ../cii/libcii ../lua/liblua.so ../lua/liblualibs.so $LIBEPILOGUE."
+        "Options and flags passed to linker-loader after listing libraries; i.e. anything you need to write after listing libraries. It is used like the following: ld $LFLAGS $NOOBJS $LIBPROLOGUE ../cii/libcii ../lua/liblua.so ../lua/liblualibs.so $LIBEPILOGUE."
         #nil
         "C Compilation")
 
