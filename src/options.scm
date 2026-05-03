@@ -107,12 +107,12 @@
         #nil
         "C Compilation")
 
-(option 'AR #nil
+(option 'AR "ar"
         "What to call to build an object-code library. An archiver or bundler tool used to produce object-code libraries from multiple object files; whatever ``ar'' is on your system, or whatever produces object-code libraries like .so or .dll."
         #nil
         "C Compilation")
 
-(option 'RANLIB #nil
+(option 'RANLIB "ranlib"
         "How to index an object-code library."
         ;; ranlib is a program for indexing object-code libraries; echo is a fallback.
         (lambda (v) (member v '("ranlib" "echo")))

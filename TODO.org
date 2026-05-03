@@ -94,9 +94,10 @@ The top-level makefile parses the make command-line options and validates them.
   endif
 
   ## These are built-in make variables, and may as well be overridden with noweb
-  ## variants.
-  TANGLE=notangle
+  ## variants (when not initialized as more).
+  TANGLE=more
   WEAVE=noweave
+  PLATFORM="unix"
 
   ## INSTALL* is recommended by the GNU Coding Standards, and is extremely
   ## prevalent. It also enables a more maintainable Makefile.
@@ -107,9 +108,10 @@ The top-level makefile parses the make command-line options and validates them.
   BUILDDIR ?= $(srcdir)/../build
   VPATH = $(BUILDDIR)
 
+  BUILD_EXEC=$(BUILDDIR)$(LIBEXEC)
+  BUILD=$(srcdir)/mkinstalldirs | $(BUILD_EXEC)
 
-
-
+  NOCOND=$(BUILD_EXEC)/tools/nocond
 
   # Stop editing. No user-serviceable parts below.
   .EXPORT_ALL_VARIABLES:
@@ -130,61 +132,58 @@ The top-level makefile parses the make command-line options and validates them.
   installdirs: $(srcdir)/mkinstalldirs
   	$(DESTDIR)$(LIBEXEC)
 
-  buildexec=$(BUILDDIR)$(LIBEXEC)
-  build=$(srcdir)/mkinstalldirs | $(buildexec)
+  $(BUILD_EXEC): $(srcdir)/mkinstalldirs
+  	$(srcdir)/mkinstalldirs $(addprefix $(BUILD_EXEC)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
 
-  $(buildexec): $(srcdir)/mkinstalldirs
-  	$(srcdir)/mkinstalldirs $(addprefix $(buildexec)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
+  tools: $(BUILD)
+  	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools"
 
-  tools: $(build)
-  	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(buildexec)/tools"
+  ciilib: $(BUILD)
+  	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii"
 
-  ciilib: $(build)
-  	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(buildexec)/cii"
+  lualib: $(BUILD)
+  	$(MAKE) -C $(srcdir)/lua-2.5.1 "OUTPUT=$(BUILD_EXEC)/lua-2.5.1"
 
-  lualib: $(build)
-  	$(MAKE) -C $(srcdir)/lua-2.5.1 --file $(LuaMakefile) "OUTPUT=$(buildexec)/lua-2.5.1"
-
-  lualib3: $(build)
-  	$(MAKE) -C $(srcdir)/lua-3.2.2 --file $(LuaMakefile) "OUTPUT=$(buildexec)/lua-3.2.2"
+  lualib3: $(BUILD)
+  	$(MAKE) -C $(srcdir)/lua-3.2.2 "OUTPUT=$(BUILD_EXEC)/lua-3.2.2"
 
   code: tools ciilib lualib
-  	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(buildexec)/c"
+  	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=../lua-2.5.1" "LUALIB=$(BUILD_EXEC)/lua-2.5.1" "OUTPUT=$(BUILD_EXEC)/c"
 
   scripts: tools
-  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(buildexec)/lua"
+  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 
   styles: tools
-  	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(buildexec)/tex"
+  	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
   careful:
   	$(MAKE) clobber
   	$(MAKE) all
   	$(MAKE) clean
-  	-$(RMDIR) $(buildexec)/first
-  	mkdir $(addprefix $(buildexec)/,first first/c first/lua first/tex)
-  	cp -R $(buildexec)/c/* $(buildexec)/first/c
-  	cp -R $(buildexec)/lua/* $(buildexec)/first/lua
-  	cp -R $(buildexec)/tex/* $(buildexec)/first/tex
+  	-$(RMDIR) $(BUILD_EXEC)/first
+  	mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
+  	cp -R $(BUILD_EXEC)/c/* $(BUILD_EXEC)/first/c
+  	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
+  	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
 
   	$(MAKE) clobber
   	$(MAKE) tools
   	$(MAKE) ciilib
   	$(MAKE) lualib
-  	-mkdir $(buildexec)/c
-  	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(buildexec)/c"
+  	-mkdir $(BUILD_EXEC)/c
+  	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(BUILD_EXEC)/c"
 
   	-mkdir $(LIBEXEC)/lua
-  	$(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(buildexec)/lua"
+  	$(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 
   	-mkdir $(LIBEXEC)/tex
-  	$(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(buildexec)/tex"
+  	$(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
-  	@echo "At this point we are attempting to build the literate version."
+  	@echo "At this point we are attempting to BUILD the literate version."
   	@echo "It may fail if you have not previously installed noweb.sty."
 
-  	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "OUTPUT=$(buildexec)/c" doc
-  	-$(RMDIR) $(buildexec)/first
+  	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
+  	-$(RMDIR) $(BUILD_EXEC)/first
 
   	$(MAKE) all clean
 
@@ -194,32 +193,32 @@ The top-level makefile parses the make command-line options and validates them.
 
   define with_m_make_n
   $(foreach t,clobber tools ciilib $(if $(findstring "2",${2}),"lualib","lualib3"),$(MAKE) ${t})
-  $(foreach d,$(addprefix $(buildexec)/,c lua tex ${1}${2} ${1}${2}/c ${1}${2}/lua ${1}${2}/tex), mkdir ${d})
-  $(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0") "OUTPUT=$(buildexec)/c"
-  $(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "OUTPUT=$(buildexec)/lua"
-  $(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(buildexec)/tex"
-  $(MAKE) -C $(srcdir)/c doc "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(buildexec)/c"
-  $(foreach d,c lua tex,cp -R $(wildcard $(buildexec)/${d}/*) $(buildexec)/${1}${2}/${d})
+  $(foreach d,$(addprefix $(BUILD_EXEC)/,c lua tex ${1}${2} ${1}${2}/c ${1}${2}/lua ${1}${2}/tex), mkdir ${d})
+  $(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0") "OUTPUT=$(BUILD_EXEC)/c"
+  $(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+  $(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+  $(MAKE) -C $(srcdir)/c doc "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
+  $(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/${1}${2}/${d})
   endef
 
   transfer:
   # noweb_2_11b->Rammel with Lua 2
   	$(MAKE) clobber
   	$(MAKE) all
-  	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(buildexec)/c" doc
-  	$(foreach d,$(addprefix $(buildexec)/,2b 2b/c 2b/lua 2b/tex), mkdir ${d})
-  	$(foreach d,c lua tex,cp -R $(wildcard $(buildexec)/${d}/*) $(buildexec)/2b/${d})
+  	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
+  	$(foreach d,$(addprefix $(BUILD_EXEC)/,2b 2b/c 2b/lua 2b/tex), mkdir ${d})
+  	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/2b/${d})
 
 
 
   # noweb_2_11b->Rammel with Lua 3
   	$(foreach t,clobber tools ciilib lualib3,$(MAKE) ${t})
-  	$(foreach d,$(addprefix $(buildexec)/,c lua tex 3b 3b/c 3b/lua 3b/tex), mkdir ${d})
-  	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-3.0" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(buildexec)/c"
-  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(buildexec)/lua"
-  	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(buildexec)/tex"
-  	$(MAKE) -C $(srcdir)/c doc "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(buildexec)/c"
-  	$(foreach d,c lua tex,cp -R $(wildcard $(buildexec)/${d}/*) $(buildexec)/3b/${d})
+  	$(foreach d,$(addprefix $(BUILD_EXEC)/,c lua tex 3b 3b/c 3b/lua 3b/tex), mkdir ${d})
+  	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-3.0" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(BUILD_EXEC)/c"
+  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+  	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+  	$(MAKE) -C $(srcdir)/c doc "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
+  	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/3b/${d})
 
 
 
@@ -243,53 +242,53 @@ The top-level makefile parses the make command-line options and validates them.
 
 
   checkclean:
-  	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(buildexec)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.pdf)))
+  	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(BUILD_EXEC)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.pdf)))
 
-  checkdifferent_fn=$(DIFF) $(foreach other,3b 32 33,$(buildexec)/$1 $(buildexec)/${other})
+  checkdifferent_fn=$(DIFF) $(foreach other,3b 32 33,$(BUILD_EXEC)/$1 $(BUILD_EXEC)/${other})
   checkdifferent:
   	$(foreach other,2b 22 23,$(call checkdifferent_fn, ${other}))
 
   checksame:
-  	$(DIFF) $(buildexec)/2b $(buildexec)/22
-  	$(DIFF) $(buildexec)/22 $(buildexec)/23
+  	$(DIFF) $(BUILD_EXEC)/2b $(BUILD_EXEC)/22
+  	$(DIFF) $(BUILD_EXEC)/22 $(BUILD_EXEC)/23
   	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
   pdf: install
-  	-mkdir $(buildexec)/c
-  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(buildexec)/c" doc
+  	-mkdir $(BUILD_EXEC)/c
+  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
 
   install: code scripts styles
-  	$(INSTALL_PROGRAM) $(buildexec)/c/no $(buildexec)/c/nwmtime $(DESTDIR)$(BINDIR)
-  	$(INSTALL_PROGRAM) $(buildexec)/lua/* $(DESTDIR)$(BINDIR)
-  	$(INSTALL_DATA) $(buildexec)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/latex/misc/noweb.sty
-  	$(INSTALL_DATA) $(buildexec)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/generic/misc/nwmac.tex
+  	$(INSTALL_PROGRAM) $(BUILD_EXEC)/c/no $(BUILD_EXEC)/c/nwmtime $(DESTDIR)$(BINDIR)
+  	$(INSTALL_PROGRAM) $(BUILD_EXEC)/lua/* $(DESTDIR)$(BINDIR)
+  	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/latex/misc/noweb.sty
+  	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/generic/misc/nwmac.tex
 
   clean:
-  	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(buildexec)/tools" clobber
+  	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
   	-$(RMDIR) $(LIBEXEC)/tools
 
-  	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(buildexec)/cii" clobber
+  	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii" clobber
   	-$(RMDIR) $(LIBEXEC)/cii
 
-  	$(MAKE) -C $(srcdir)/lua-2.5 $(LuaMakefile) "OUTPUT=$(buildexec)/lua-2.5" clobber
+  	$(MAKE) -C $(srcdir)/lua-2.5 $(LuaMakefile) "OUTPUT=$(BUILD_EXEC)/lua-2.5" clobber
   	-$(RMDIR) $(LIBEXEC)/lua-2.5
 
-  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(buildexec)/c" clean
-  	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(buildexec)/lua" clean
-  	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(buildexec)/tex" clean
+  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clean
+  	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clean
+  	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(BUILD_EXEC)/tex" clean
   	-$(RM) *~
 
 
 
   clobber: clean
-  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(buildexec)/c" clobber
-  	-$(RMDIR) $(buildexec)/c
+  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clobber
+  	-$(RMDIR) $(BUILD_EXEC)/c
 
-  	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(buildexec)/lua" clobber
-  	-$(RMDIR) $(buildexec)/lua
+  	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clobber
+  	-$(RMDIR) $(BUILD_EXEC)/lua
 
-  	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(buildexec)/tex" clobber
-  	-$(RMDIR) $(buildexec)/tex
+  	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(BUILD_EXEC)/tex" clobber
+  	-$(RMDIR) $(BUILD_EXEC)/tex
 #+end_src
 
 *** TODO Revert to unvalidated, standard Make variables as options
@@ -312,9 +311,9 @@ The options for configuring Rammel are the same as configuring noweb version 3.
   LDFLAGS="-lc"
   LIBEPILOGUE=
 
-  AR=
+  AR=ar
 
-  RANLIB=
+  RANLIB=ranlib
 
   CIIMAXALIGN=
 
@@ -441,12 +440,12 @@ The options for configuring Rammel are the same as configuring noweb version 3.
           #nil
           "C Compilation")
 
-  (option 'AR #nil
+  (option 'AR "ar"
           "What to call to build an object-code library. An archiver or bundler tool used to produce object-code libraries from multiple object files; whatever ``ar'' is on your system, or whatever produces object-code libraries like .so or .dll."
           #nil
           "C Compilation")
 
-  (option 'RANLIB #nil
+  (option 'RANLIB "ranlib"
           "How to index an object-code library."
           ;; ranlib is a program for indexing object-code libraries; echo is a fallback.
           (lambda (v) (member v '("ranlib" "echo")))
@@ -503,8 +502,13 @@ consumes the output of all the others: CII; an embeddable Lua; scripts written
 in Lua.
 
 #+begin_src makefile :tangle src/c/Makefile
-  CII=../cii
-  INCS=-I$(CII)/include -I$(LUA)/include
+  INCS = -I. -I../cii/include -I$(LUA)
+
+  # ifeq ($(LUA),lua-2.5.1)
+  # INCS += -I$(LUA)
+  # else
+  # INCS += -I$(LUA)/include
+  # endif
 
 
 
@@ -540,7 +544,7 @@ in Lua.
 
   # Define a metarule so rules aren't needed for each object file.
   .c.o: ;
-  	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS)$@ $*.c
+  	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
 
   all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
@@ -552,32 +556,19 @@ in Lua.
   $(OUTPUT)/nwmtime$(E): $(NWMTIMEOBJS)
   	$(LD) $(LFLAGS)$@ $(NWMTIMEOBJS)
 
-  $(OUTPUT)/no$(E): $(NOOBJS) $(LIBEXEC)/cii/memchk$(O) $(LIBEXEC)/cii/libcii$(A) $(LUALIB)/liblua$(A) $(LUALIB)/liblualib$(A)
-  	$(LD) $(LFLAGS)$@ $(NOOBJS) $(LIBPROLOG) $(LIBEXEC)/cii/libcii$(A) $(LUALIB)/liblua$(A) $(LUALIB)/liblualib$(A) $(LIBEPILOG)
+  $(OUTPUT)/no$(E): $(NOOBJS) $(BUILD_EXEC)/cii/memchk.o $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so
+  	$(LD) $(LFLAGS)$@ $(NOOBJS) $(LIBPROLOG) $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so $(LIBEPILOG)
 
   touch: $(SRCS)
   	touch $(SRCS)
 
   clean:
-  	-$(RM) $(NOOBJS) 2>$(NUL)
-  	-$(RM) $(NWMTIMEOBJS) 2>$(NUL)
-  	-$(RM) $(SRCS) 2>$(NUL)
-  	-$(RM) $(OUTPUT)/nwbuffer-lua.0 2>$(NUL)
-  	-$(RM) $(OUTPUT)/nwbuffer-lua.1 2>$(NUL)
-  	-$(RM) $(OUTPUT)/nwbuffer-lua.2 2>$(NUL)
-  	-$(RM) $(OUTPUT)/nwbuffer-lua.3 2>$(NUL)
-  	-$(RM) $(OUTPUT)/allcode.tex 2>$(NUL)
-  	-$(RM) $(OUTPUT)/doc.aux 2>$(NUL)
-  	-$(RM) $(OUTPUT)/doc.log 2>$(NUL)
-  	-$(RM) $(OUTPUT)/doc.out 2>$(NUL)
-  	-$(RM) $(OUTPUT)/doc.tex 2>$(NUL)
-  	-$(RM) $(OUTPUT)/doc.toc 2>$(NUL)
+  	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
   clobber:	clean
-  	-$(RM) $(OUTPUT)/nwmtime$(E) $(OUTPUT)/no$(E) 2>$(NUL)
-  	-$(RM) $(OUTPUT)/doc.pdf 2>$(NUL)
+  	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
-  $(OUTPUT)/doc.tex:	doc.nw
+  $(OUTPUT)/doc.tex: doc.nw
   	$(CP) doc.nw $@
 
   $(OUTPUT)/allcode.tex:	$(FILES)
@@ -894,7 +885,8 @@ it standard input from the =@echo= lines.
   argv = { "-internal", "test.nw" }; do_nwfile("tangle.nws"); write("Null tangle OK.\n");
 #+end_src
 
-** Tools
+** DONE Tools
+CLOSED: [2026-05-03 Sun 01:21]
 These tools are used to bootstrap Rammel by tangling its sources from noweb
 files before Rammel itself is available to otherwise do the same task. These
 tools can be made obsolete by shipping the tangled sources of all webs alongside
@@ -958,63 +950,102 @@ built up, particularly its renewed GNU Make build system.
   	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ tie.c
 #+end_src
 
-** Vendored CII
+** DONE Vendored CII
+CLOSED: [2026-05-03 Sun 01:14]
+I've tried to clean up this makefile.
+
 #+begin_src makefile :tangle src/cii/Makefile
-  I=include
   MAXALIGN=-DMAXALIGN=$(CIIMAXALIGN)
-  CIIFLAGS=-I$I $(MAXALIGN)
-  BUILDDIR=$(OUTPUT)/
 
-  # $Id$
-  OBJS=	$(BUILDDIR)/arena.o \
-  	$(BUILDDIR)/array.o \
-  	$(BUILDDIR)/assert.o \
-  	$(BUILDDIR)/atom.o \
-  	$(BUILDDIR)/except.o \
-  	$(BUILDDIR)/fmt.o \
-  	$(BUILDDIR)/list.o \
-  	$(BUILDDIR)/mem.o \
-  	$(BUILDDIR)/seq.o \
-  	$(BUILDDIR)/str.o
+  OBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,arena array assert atom except fmt list mem seq str))
 
-  all:: $(BUILDDIR)/libcii.so $(BUILDDIR)/memchk.o
+  all: $(OUTPUT)/libcii.so $(OUTPUT)/memchk.o
 
-  $(BUILDDIR)libcii.so:: $(OBJS)
-  		$(AR)$@ $(OBJS) && $(RANLIB) $@
+  $(OUTPUT)/libcii.so: $(OBJS)
+  	$(AR) -rsc $@ $(OBJS)
 
-  $(BUILDDIR)/arena.o	: src/arena.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/arena.c
-  $(BUILDDIR)/array.o	: src/array.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/array.c
-  $(BUILDDIR)/assert.o : src/assert.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/assert.c
-  $(BUILDDIR)/atom.o   : src/atom.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/atom.c
-  $(BUILDDIR)/except.o : src/except.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/except.c
-  $(BUILDDIR)/fmt.o		: src/fmt.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/fmt.c
-  $(BUILDDIR)/list.o	 	: src/list.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/list.c
-  $(BUILDDIR)/mem.o		: src/mem.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/mem.c
-  $(BUILDDIR)/memchk.o : src/memchk.c 	; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/memchk.c
-  $(BUILDDIR)/seq.o		: src/seq.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/seq.c
-  $(BUILDDIR)/str.o		: src/str.c 		; $(CC) $(CIIFLAGS) $(CFLAGS)$@ src/str.c
+  $(OUTPUT)/%.o: $(srcdir)/cii/src/%.c
+  	$(CC) $(CFLAGS) -Iinclude $(MAXALIGN) $< -o $@
 
+  clean:
+  	-$(RM) $(OBJS)
 
-
-  clean::
-  		-$(RM) $(OBJS)
-
-  clobber::	clean
-  		-$(RM) $(BUILDDIR)/libcii$A $(BUILDDIR)/*.o
-
-  # DO NOT DELETE THIS LINE -- make depend depends on it.
-
-  $(BUILDDIR)/arena.o:		$I/assert.h $I/except.h $I/arena.h
-  $(BUILDDIR)/array.o:		$I/assert.h $I/except.h $I/array.h	$I/arrayrep.h $I/mem.h
-  $(BUILDDIR)/assert.o:	$I/assert.h $I/except.h
-  $(BUILDDIR)/atom.o:		$I/atom.h		$I/assert.h $I/except.h $I/mem.h
-  $(BUILDDIR)/except.o:	$I/assert.h $I/except.h
-  $(BUILDDIR)/fmt.o:			$I/assert.h $I/except.h $I/fmt.h		$I/mem.h
-  $(BUILDDIR)/list.o:		$I/assert.h $I/except.h $I/mem.h		$I/list.h
-  $(BUILDDIR)/mem.o:			$I/assert.h $I/except.h $I/mem.h
-  $(BUILDDIR)/memchk.o:	$I/assert.h $I/except.h $I/mem.h
-  $(BUILDDIR)/seq.o:			$I/assert.h $I/except.h $I/seq.h		$I/array.h		$I/arrayrep.h $I/mem.h
-  $(BUILDDIR)/str.o:			$I/assert.h $I/except.h $I/fmt.h		$I/str.h			$I/mem.h
+  clobber:	clean
+  	-$(RM) $(OUTPUT)/libcii$A $(OUTPUT)/*.o
 #+end_src
 
-** Vendored Lua
+** TODO Vendored Lua [1/3]
+*** DONE 2.5.1
+CLOSED: [2026-05-03 Sun 01:28]
+This makefile is based upon the upstream.
+
+#+begin_src makefile :tangle src/lua-2.5.1/makefile
+  # CONFIGURATION
+  # define (undefine) POPEN if your system (does not) support piped I/O
+  # define (undefine) _POSIX_SOURCE if your system is (not) POSIX compliant
+  # define (undefine) NOSTRERROR if your system does NOT have function "strerror"
+  # (although this is ANSI, SunOS does not comply; so, add "-DNOSTRERROR" on SunOS)
+  CONFIG = -DPOPEN -D_POSIX_SOURCE
+  # Compilation parameters
+  CC = gcc
+  CFLAGS = $(CONFIG) -Wall -Wmissing-prototypes -Wshadow -ansi -O2 -pedantic
+
+  AR = ar
+  ARFLAGS	= rvc
+
+  # Aplication modules
+  LUAOBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,parser lex opcode hash table inout tree fallback luamem func undump))
+
+  LIBOBJS = iolib.o mathlib.o strlib.o
+
+  lua : lua.o liblua.a liblualib.a
+  	$(CC) $(CFLAGS) -o $@ lua.o -L. -llua -llualib -lm
+
+  liblua.a : $(LUAOBJS)
+  	$(AR) $(ARFLAGS) $@  $?
+  	ranlib $@
+
+  liblualib.a : $(LIBOBJS)
+  	$(AR) $(ARFLAGS) $@  $?
+  	ranlib $@
+
+  liblua.so.1.0 : lua.o
+  	ld -o liblua.so.1.0 $(LUAOBJS)
+
+  y.tab.c y.tab.h  : lua.stx
+  	yacc -d lua.stx
+
+  parser.c : y.tab.c
+  	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' y.tab.c > parser.c
+
+  parser.h : y.tab.h
+  	sed -e 's/yy/luaY_/g' y.tab.h > parser.h
+
+  clear	:
+  	rm -f *.o
+  	rm -f parser.c parser.h y.tab.c y.tab.h
+
+  $(OUTPUT)/parser.o : parser.c parser.h
+  	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
+
+  $(OUTPUT)/%.o : %.c
+  	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
+
+  # fallback.o : fallback.c luamem.h fallback.h lua.h opcode.h types.h tree.h func.h table.h
+  # func.o : func.c luadebug.h lua.h table.h tree.h types.h opcode.h func.h luamem.h
+  # hash.o : hash.c luamem.h opcode.h lua.h types.h tree.h func.h hash.h table.h
+  # inout.o : inout.c lex.h opcode.h lua.h types.h tree.h func.h inout.h table.h luamem.h
+  # iolib.o : iolib.c lua.h luadebug.h lualib.h
+  # lex.o : lex.c luamem.h tree.h types.h table.h opcode.h lua.h func.h lex.h inout.h luadebug.h parser.h
+  # lua.o : lua.c lua.h lualib.h
+  # mathlib.o : mathlib.c lualib.h lua.h
+  # luamem.o : luamem.c luamem.h lua.h
+  # opcode.o : opcode.c luadebug.h lua.h luamem.h opcode.h types.h tree.h func.h hash.h inout.h table.h fallback.h undump.h
+  # parser.o : parser.c luadebug.h lua.h luamem.h lex.h opcode.h types.h tree.h func.h hash.h inout.h table.h
+  # strlib.o : strlib.c lua.h lualib.h
+  # table.o : table.c luamem.h opcode.h lua.h types.h tree.h func.h hash.h table.h inout.h fallback.h luadebug.h
+  # tree.o : tree.c luamem.h lua.h tree.h types.h lex.h hash.h opcode.h func.h table.h
+  # undump.o : undump.c opcode.h lua.h types.h tree.h func.h luamem.h table.h undump.h
+#+end_src
+*** TODO 3.2.2
+*** TODO 5.5.0

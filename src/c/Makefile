@@ -1,5 +1,10 @@
-CII=../cii
-INCS=-I$(CII)/include -I$(LUA)/include
+INCS = -I. -I../cii/include -I$(LUA)
+
+# ifeq ($(LUA),lua-2.5.1)
+# INCS += -I$(LUA)
+# else
+# INCS += -I$(LUA)/include
+# endif
 
 
 
@@ -35,7 +40,7 @@ xpipe-lua.h xpipe.c xpipe.h)
 
 # Define a metarule so rules aren't needed for each object file.
 .c.o: ;
-	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS)$@ $*.c
+	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
 
 all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
@@ -47,32 +52,19 @@ doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
 $(OUTPUT)/nwmtime$(E): $(NWMTIMEOBJS)
 	$(LD) $(LFLAGS)$@ $(NWMTIMEOBJS)
 
-$(OUTPUT)/no$(E): $(NOOBJS) $(LIBEXEC)/cii/memchk$(O) $(LIBEXEC)/cii/libcii$(A) $(LUALIB)/liblua$(A) $(LUALIB)/liblualib$(A)
-	$(LD) $(LFLAGS)$@ $(NOOBJS) $(LIBPROLOG) $(LIBEXEC)/cii/libcii$(A) $(LUALIB)/liblua$(A) $(LUALIB)/liblualib$(A) $(LIBEPILOG)
+$(OUTPUT)/no$(E): $(NOOBJS) $(BUILD_EXEC)/cii/memchk.o $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so
+	$(LD) $(LFLAGS)$@ $(NOOBJS) $(LIBPROLOG) $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so $(LIBEPILOG)
 
 touch: $(SRCS)
 	touch $(SRCS)
 
 clean:
-	-$(RM) $(NOOBJS) 2>$(NUL)
-	-$(RM) $(NWMTIMEOBJS) 2>$(NUL)
-	-$(RM) $(SRCS) 2>$(NUL)
-	-$(RM) $(OUTPUT)/nwbuffer-lua.0 2>$(NUL)
-	-$(RM) $(OUTPUT)/nwbuffer-lua.1 2>$(NUL)
-	-$(RM) $(OUTPUT)/nwbuffer-lua.2 2>$(NUL)
-	-$(RM) $(OUTPUT)/nwbuffer-lua.3 2>$(NUL)
-	-$(RM) $(OUTPUT)/allcode.tex 2>$(NUL)
-	-$(RM) $(OUTPUT)/doc.aux 2>$(NUL)
-	-$(RM) $(OUTPUT)/doc.log 2>$(NUL)
-	-$(RM) $(OUTPUT)/doc.out 2>$(NUL)
-	-$(RM) $(OUTPUT)/doc.tex 2>$(NUL)
-	-$(RM) $(OUTPUT)/doc.toc 2>$(NUL)
+	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
 clobber:	clean
-	-$(RM) $(OUTPUT)/nwmtime$(E) $(OUTPUT)/no$(E) 2>$(NUL)
-	-$(RM) $(OUTPUT)/doc.pdf 2>$(NUL)
+	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
-$(OUTPUT)/doc.tex:	doc.nw
+$(OUTPUT)/doc.tex: doc.nw
 	$(CP) doc.nw $@
 
 $(OUTPUT)/allcode.tex:	$(FILES)
