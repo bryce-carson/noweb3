@@ -80,7 +80,7 @@ help :
 all: code scripts styles
 
 installdirs: $(srcdir)/mkinstalldirs
-	$(DESTDIR)$(LIBEXEC)
+	$(srcdir)/mkinstalldirs $(DESTDIR)$(LIBEXEC) $(TEXINPUTS)
 
 $(BUILD_EXEC): $(srcdir)/mkinstalldirs
 	$(srcdir)/mkinstalldirs $(addprefix $(BUILD_EXEC)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
@@ -204,24 +204,23 @@ checksame:
 	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
 pdf: install
-	-mkdir $(BUILD_EXEC)/c
 	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
 
-install: code scripts styles
-	$(INSTALL_PROGRAM) $(BUILD_EXEC)/c/no $(BUILD_EXEC)/c/nwmtime $(DESTDIR)$(BINDIR)
-	$(INSTALL_PROGRAM) $(BUILD_EXEC)/lua/* $(DESTDIR)$(BINDIR)
-	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/latex/misc/noweb.sty
-	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/generic/misc/nwmac.tex
+install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
+	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(BIN) $(addprefix $(BUILD_EXEC)/c/,no nwmtime)
+	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(LIBEXEC) $(wildcard $(BUILD_EXEC)/lua/*)
+	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
+	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
 clean:
 	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
-	-$(RMDIR) $(LIBEXEC)/tools
+	-$(RMDIR) $(BUILD_EXEC)/tools
 
 	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii" clobber
-	-$(RMDIR) $(LIBEXEC)/cii
+	-$(RMDIR) $(BUILD_EXEC)/cii
 
 	$(MAKE) -C $(srcdir)/lua-2.5 $(LuaMakefile) "OUTPUT=$(BUILD_EXEC)/lua-2.5" clobber
-	-$(RMDIR) $(LIBEXEC)/lua-2.5
+	-$(RMDIR) $(BUILD_EXEC)/lua-2.5
 
 	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clean
 	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clean

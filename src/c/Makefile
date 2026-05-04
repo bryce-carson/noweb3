@@ -14,16 +14,7 @@ markup misc-lua modtrees modules mpipe mpipe-lua notangle noweb-lua nwbuffer   \
 nwbuffer-lua nwprocess nwtime recognize stages strsave sys util xpipe          \
 xpipe-lua))
 
-
-
 NWMTIMEOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns errors getline nwmtime))
-
-
-
-FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua   \
-lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle \
-nwbuffer nwbuffer-lua nwmtime nwprocess nwtime recognize strsave xpipe         \
-xpipe-lua)
 
 # Sources to build when distributing C code (add all generated .c and .h files
 # to this list)
@@ -45,15 +36,13 @@ xpipe-lua.h xpipe.c xpipe.h)
 all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
 doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
-	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-	pdflatex -output-directory=$(OUTPUT) doc.tex
+	latexmk -output-directory=$(OUTPUT) doc.tex
 
 $(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
 
 $(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
+	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG) -DNWDEFAULTDIR=$(LIBEXEC)
 
 touch: $(SRCS)
 	touch $(SRCS)
@@ -65,10 +54,15 @@ clobber: clean
 	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
 $(OUTPUT)/doc.tex: doc.nw
-	$(CP) doc.nw $@
+	cp doc.nw $@
+
+FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua   \
+lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle \
+nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe         \
+xpipe-lua)
 
 $(OUTPUT)/allcode.tex: $(FILES)
-	$(OUTPUT)/no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
+	NWPATH=$(LIBEXEC) no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 

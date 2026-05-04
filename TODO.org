@@ -166,7 +166,7 @@ The top-level makefile parses the make command-line options and validates them.
   all: code scripts styles
 
   installdirs: $(srcdir)/mkinstalldirs
-  	$(DESTDIR)$(LIBEXEC)
+  	$(srcdir)/mkinstalldirs $(DESTDIR)$(LIBEXEC) $(TEXINPUTS)
 
   $(BUILD_EXEC): $(srcdir)/mkinstalldirs
   	$(srcdir)/mkinstalldirs $(addprefix $(BUILD_EXEC)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
@@ -290,24 +290,23 @@ The top-level makefile parses the make command-line options and validates them.
   	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
   pdf: install
-  	-mkdir $(BUILD_EXEC)/c
   	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
 
-  install: code scripts styles
-  	$(INSTALL_PROGRAM) $(BUILD_EXEC)/c/no $(BUILD_EXEC)/c/nwmtime $(DESTDIR)$(BINDIR)
-  	$(INSTALL_PROGRAM) $(BUILD_EXEC)/lua/* $(DESTDIR)$(BINDIR)
-  	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/latex/misc/noweb.sty
-  	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/generic/misc/nwmac.tex
+  install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
+  	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(BIN) $(addprefix $(BUILD_EXEC)/c/,no nwmtime)
+  	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(LIBEXEC) $(wildcard $(BUILD_EXEC)/lua/*)
+  	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
+  	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
   clean:
   	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
-  	-$(RMDIR) $(LIBEXEC)/tools
+  	-$(RMDIR) $(BUILD_EXEC)/tools
 
   	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii" clobber
-  	-$(RMDIR) $(LIBEXEC)/cii
+  	-$(RMDIR) $(BUILD_EXEC)/cii
 
   	$(MAKE) -C $(srcdir)/lua-2.5 $(LuaMakefile) "OUTPUT=$(BUILD_EXEC)/lua-2.5" clobber
-  	-$(RMDIR) $(LIBEXEC)/lua-2.5
+  	-$(RMDIR) $(BUILD_EXEC)/lua-2.5
 
   	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clean
   	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clean
@@ -327,7 +326,8 @@ The top-level makefile parses the make command-line options and validates them.
   	-$(RMDIR) $(BUILD_EXEC)/tex
 #+end_src
 
-** C
+** DONE C
+CLOSED: [2026-05-03 Sun 20:18]
 This is the most important Makefile, other than the top-level makefile, as this
 consumes the output of all the others: CII; an embeddable Lua; scripts written
 in Lua.
@@ -349,16 +349,7 @@ in Lua.
   nwbuffer-lua nwprocess nwtime recognize stages strsave sys util xpipe          \
   xpipe-lua))
 
-
-
   NWMTIMEOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns errors getline nwmtime))
-
-
-
-  FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua   \
-  lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle \
-  nwbuffer nwbuffer-lua nwmtime nwprocess nwtime recognize strsave xpipe         \
-  xpipe-lua)
 
   # Sources to build when distributing C code (add all generated .c and .h files
   # to this list)
@@ -380,15 +371,13 @@ in Lua.
   all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
   doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
-  	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-  	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
-  	pdflatex -output-directory=$(OUTPUT) doc.tex
+  	latexmk -output-directory=$(OUTPUT) doc.tex
 
   $(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
   	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
 
   $(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-  	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
+  	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG) -DNWDEFAULTDIR=$(LIBEXEC)
 
   touch: $(SRCS)
   	touch $(SRCS)
@@ -400,10 +389,15 @@ in Lua.
   	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
   $(OUTPUT)/doc.tex: doc.nw
-  	$(CP) doc.nw $@
+  	cp doc.nw $@
+
+  FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua   \
+  lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle \
+  nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe         \
+  xpipe-lua)
 
   $(OUTPUT)/allcode.tex: $(FILES)
-  	$(OUTPUT)/no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
+  	NWPATH=$(LIBEXEC) no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 
@@ -557,7 +551,8 @@ This was converted from Lua to Guile Scheme by Grok.
   (tangle-c-or-h-file "nwbuffer" #:root "nwbuffer-lua.c" #:output-file "../src/c/nwbuffer-lua.c" #:version 2)
 #+end_src
 
-** Lua
+** DONE Lua
+CLOSED: [2026-05-03 Sun 20:18]
 Below is the original =src/lua/Makefile=.
 
 #+begin_src makefile :tangle src/lua/Makefile
@@ -567,6 +562,8 @@ Below is the original =src/lua/Makefile=.
   SCRIPTS = tangle.nws weave.nws
 
   all: $(CONFIG) $(STAGES) $(SCRIPTS)
+  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; done
+  	for i in $(SCRIPTS);          do cp                         $$i   $(OUTPUT)/$$i; done
 
   test: $(CONFIG) $(STAGES) $(SCRIPTS)
   	@echo 'write("Scripts load from .\n")' | NWPATH=. no
@@ -580,10 +577,6 @@ Below is the original =src/lua/Makefile=.
 
   clobber: clean
   	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
-
-  install: $(SCRIPTS) $(CONFIG) $(STAGES)
-  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIBEXEC)/$$i; done
-  	for i in $(SCRIPTS);          do cp                         $$i   $(LIBEXEC)/$$i; done
 
   %.c: %.nw
   	$(NOTANGLE) $< $(TANGLEOPTS) -L"#line %L \"${$*}.nw\"%N" > $@

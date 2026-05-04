@@ -4,6 +4,8 @@ STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws
 SCRIPTS = tangle.nws weave.nws
 
 all: $(CONFIG) $(STAGES) $(SCRIPTS)
+	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; done
+	for i in $(SCRIPTS);          do cp                         $$i   $(OUTPUT)/$$i; done
 
 test: $(CONFIG) $(STAGES) $(SCRIPTS)
 	@echo 'write("Scripts load from .\n")' | NWPATH=. no
@@ -17,10 +19,6 @@ clean:
 
 clobber: clean
 	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
-
-install: $(SCRIPTS) $(CONFIG) $(STAGES)
-	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIBEXEC)/$$i; done
-	for i in $(SCRIPTS);          do cp                         $$i   $(LIBEXEC)/$$i; done
 
 %.c: %.nw
 	$(NOTANGLE) $< $(TANGLEOPTS) -L"#line %L \"${$*}.nw\"%N" > $@
