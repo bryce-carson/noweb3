@@ -60,22 +60,22 @@ int load_nwfile(const char *filename) {
     return lua_dofile((char *)filename);
 
   <<if [[searchpath]] is null, set it>>
+   
+   for (p = searchpath; p; p = p->rest) {
+     fname = Fmt_string("%s%s%s", p->first, Sys_dirsep, filename);
+     if ((fp = fopen(fname, "r"))) {
+       fclose(fp);
+       fprintf(stderr, "Opening file %s", fname);
+       rc = lua_dofile(fname);
+       FREE(fname);
+       return rc;
+     } else
+       FREE(fname);
+   }
 
-  for (p = searchpath; p; p = p->rest) {
-    fname = Fmt_string("%s%s%s", p->first, Sys_dirsep, filename);
-    if ((fp = fopen(fname, "r"))) {
-      fclose(fp);
-      /* verbose("Opening file %s", fname); */
-      rc = lua_dofile(fname);
-      FREE(fname);
-      return rc;
-    } else
-      FREE(fname);
-  }
-
-  /* nothing precompiled yet */
+/* nothing precompiled yet */
   return 2;
-}
+  }
 @ 
 <<*>>=
 List_T pathsplit(const char *path) {
@@ -95,9 +95,11 @@ List_T pathsplit(const char *path) {
 #endif
 if (!searchpath) {
   char *p = getenv("NWPATH");
+  fprintf(stderr, "[Rammel load_nwfile()] searchpath is null, so utilizing NWDEFAULTDIR = %s.\n", NWDEFAULTDIR);
   searchpath = pathsplit(p ? p : NWDEFAULTDIR);
   List_map(searchpath, replace_empty, NULL);
-}
+ }
+#undef PRINT_NWDEFAULTDIR
 <<*>>=
 static void replace_empty(void **item, void*arg) {
   char **sp = (char **)item;

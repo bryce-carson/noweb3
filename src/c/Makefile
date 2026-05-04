@@ -31,7 +31,7 @@ xpipe-lua.h xpipe.c xpipe.h)
 
 # Define a metarule so rules aren't needed for each object file.
 .c.o: ;
-	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
+	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
 
 all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
@@ -42,7 +42,7 @@ $(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
 
 $(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG) -DNWDEFAULTDIR=$(LIBEXEC)
+	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
 
 touch: $(SRCS)
 	touch $(SRCS)
@@ -56,13 +56,13 @@ clobber: clean
 $(OUTPUT)/doc.tex: doc.nw
 	cp doc.nw $@
 
-FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua   \
-lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle \
-nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe         \
+FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua    \
+lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle  \
+nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe                       \
 xpipe-lua)
 
 $(OUTPUT)/allcode.tex: $(FILES)
-	NWPATH=$(LIBEXEC) no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
+	no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 

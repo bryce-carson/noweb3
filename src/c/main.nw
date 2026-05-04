@@ -97,29 +97,30 @@ which scans the current piece, setting the following variables:
 \end{tabular}
 \end{quote}
 <<scan piece starting at [[argv[i]]]>>=
-{ int j;
-  root_options_seen = 0;
-  for (j = i; j < argc && !cpif_like(argv[j]); j++)
-      if (*argv[j]=='-')
-          switch(argv[j][1]) {
-          case 'R': /* change name of root module */
-              root_options_seen++;
-              break;
-          case 'L': /* have a #line number format  */
-              locformat = argv[j]+2;
-              if (!*locformat) locformat = Clocformat;
-              else if (!strcmp(locformat, "-")) locformat = "";
-              break;
-          case 't': /* ignored on this pass */
-              break;
-          default:
-              assert(0);
-          }
-  limit = j;
-  if (j < argc) {
-      assert(j + 1 < argc && cpif_like(argv[j]));
-      <<set [[outfile]] for cpif-like [[argv[j]]] to [[argv[j+1]]]>>;
-  } else
+{
+    int j;
+    root_options_seen = 0;
+    for (j = i; j < argc && !cpif_like(argv[j]); j++)
+        if (*argv[j]=='-')
+            switch(argv[j][1]) {
+            case 'R': /* change name of root module */
+                root_options_seen++;
+                break;
+            case 'L': /* have a #line number format  */
+                locformat = argv[j]+2;
+                if (!*locformat) locformat = Clocformat;
+                else if (!strcmp(locformat, "-")) locformat = "";
+                break;
+            case 't': /* ignored on this pass */
+                break;
+            default:
+                assert(0);
+            }
+    limit = j;
+    if (j < argc) {
+        assert(j + 1 < argc && cpif_like(argv[j]));
+        <<set [[outfile]] for cpif-like [[argv[j]]] to [[argv[j+1]]]>>;
+} else
       outfile = stdout;
 }
 @ 
@@ -197,30 +198,33 @@ The following options are good on the command line:
 All options except \texttt{-t} are handled on the second pass.
 <<handle first-pass option in argument [[i]]>>=
     switch (argv[i][1]) {
-        case 't': /* set tab size or turn off */
-            if (isdigit(argv[i][2]))
-                tabsize = atoi(argv[i]+2);
-            else if (argv[i][2]==0)
-                tabsize = 0;            /* no tabs */
-            else 
-                errormsg(Error, "%s: ill-formed option %s", argv[0], argv[i]);
-            break;          
-        case 'c':
-            if (!cpif_like(argv[i]))
-                errormsg(Error, "%s: unknown option %s", argv[0], argv[i]);
-            else if (++i == argc)
-                errormsg(Fatal, "%s: a file must follow %s", argv[0], argv[i-1]);
-            break;
-        case 'R': /* change name of root module */
-        case 'L': /* have a #line number format  */
-            break;
-        default:
-            errormsg(Error, "Unknown option %s", argv[i]);
-     }
+    case 't': /* set tab size or turn off */
+        if (isdigit(argv[i][2]))
+            tabsize = atoi(argv[i]+2);
+        else if (argv[i][2]==0)
+            tabsize = 0;            /* no tabs */
+        else 
+            errormsg(Error, "%s: ill-formed option %s", argv[0], argv[i]);
+        break;          
+    case 'c':
+        if (!cpif_like(argv[i]))
+            errormsg(Error, "%s: unknown option %s", argv[0], argv[i]);
+        else if (++i == argc)
+            errormsg(Fatal, "%s: a file must follow %s", argv[0], argv[i-1]);
+        break;
+    case 'R': /* change name of root module */
+    case 'L': /* have a #line number format  */
+        break;
+    default:
+        errormsg(Error, "Unknown option %s", argv[i]);
+    }
+
+#undef PRINT_NWDEFAULTDIR
+
 @
 <<handle argument in argument [[i]]>>=
 errormsg(Warning,
-    "I can't handle arguments yet, so I'll just ignore `%s'",argv[i]);
+    "[no tangle] Handling of non-flag or non-option arguments is not implemented; ignoring `%s'", argv[i]);
 
 @ 
 <<function [[cpif_like]]>>=

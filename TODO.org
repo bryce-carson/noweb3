@@ -140,7 +140,7 @@ The top-level makefile parses the make command-line options and validates them.
 
   # Stop editing. No user-serviceable parts below.
   .EXPORT_ALL_VARIABLES:
-  .PHONY: help transfer
+  .PHONY: help transfer install pdf
 
   help :
   	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
@@ -289,7 +289,8 @@ The top-level makefile parses the make command-line options and validates them.
   	$(DIFF) $(BUILD_EXEC)/22 $(BUILD_EXEC)/23
   	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
-  pdf: install
+  pdf:
+  	@echo "Building the PDF mail fail if you don't have no installed properly."
   	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
 
   install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
@@ -326,11 +327,19 @@ The top-level makefile parses the make command-line options and validates them.
   	-$(RMDIR) $(BUILD_EXEC)/tex
 #+end_src
 
-** DONE C
-CLOSED: [2026-05-03 Sun 20:18]
+** TODO C
 This is the most important Makefile, other than the top-level makefile, as this
 consumes the output of all the others: CII; an embeddable Lua; scripts written
 in Lua.
+
+PDF compilation fails.
+
+#+begin_src latex
+  Anyways, apparently [[2]] is the correct error code and something else is going
+  on with the system that is preventing it from loading noweb files properly,
+  especially [[weave]] or [[tangle]]! I need to compile the project with dubugging
+  symbols and see what is happening when [[load_nwfile]] is called.
+#+end_src
 
 #+begin_src makefile :tangle src/c/Makefile
   INCS = -I. -I../cii/include -I$(LUA)
@@ -366,7 +375,7 @@ in Lua.
 
   # Define a metarule so rules aren't needed for each object file.
   .c.o: ;
-  	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
+  	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
 
   all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
@@ -377,7 +386,7 @@ in Lua.
   	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
 
   $(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-  	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG) -DNWDEFAULTDIR=$(LIBEXEC)
+  	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
 
   touch: $(SRCS)
   	touch $(SRCS)
@@ -391,13 +400,13 @@ in Lua.
   $(OUTPUT)/doc.tex: doc.nw
   	cp doc.nw $@
 
-  FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua   \
-  lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle \
-  nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe         \
+  FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua    \
+  lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle  \
+  nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe                       \
   xpipe-lua)
 
   $(OUTPUT)/allcode.tex: $(FILES)
-  	NWPATH=$(LIBEXEC) no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
+  	no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 

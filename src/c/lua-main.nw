@@ -67,11 +67,42 @@ int main(int argc, char* argv[]) {
   }
   lua_pushstring(platform);
   lua_storeglobal("PLATFORM");
-  if (load_nwfile("noweb.cfg")) {
-     fprintf(stderr, "%s: cannot find configuration file noweb.cfg - ", argv[0]);
-     perror("");
-     exit(1);
-  }
+@
+
+\leavevmode\marginpar{\leavevmode\sffamily\color{blue}\scriptsize BC}
+While clarifying the makefiles with the boiling heat \textsc{GNU Make} features,
+I've finally reached the point where I can build the top-level [[all]] target,
+though my build of [[no]] currently has difficulty with this statement. I
+believe, perhaps, this condition is mistakenly passed and the error is always
+triggered. I have attempted to debug the issue by hacking on the definition of
+[[load_nwfile]] itself and using simple printf statements because I can't be
+bothered with \textsc{gdb} at this point.
+
+<<lua-main.c>>=
+if (load_nwfile("noweb.cfg")) {
+  fprintf(stderr, "%s: cannot find configuration file noweb.cfg - ", argv[0]);
+  perror("");
+  exit(1);
+ }
+@
+
+After an hour of shoddy debugging and slogging I confirmed that a conditional
+was missing, as when it is included, the macro NWDEFAULTDIR is printed with
+debugging fprintf statements and such, I can proceed and I know that [[no]] is
+definitely seeing the [[noweb.cfg]] file that was the original complaint when I
+tried to compile the PDF.
+
+Why would I want to [[load_nwfile("tangle")]] or [[load_nwfile("weave")]] when I
+call [[no]]? I assume that either the operation is meant to select the
+subcommand, or something else is wrong with the implementation of [[no]] at the
+moment.
+
+Anyways, apparently [[2]] is the correct error code and something else is going
+on with the system that is preventing it from loading noweb files properly,
+especially [[weave]] or [[tangle]]! I need to compile the project with dubugging
+symbols and see what is happening when [[load_nwfile]] is called.
+
+<<lua-main.c>>=
   lua_pushobject(lua_argv);
   lua_storeglobal("argv");
   if (argc < 2 || strcmp(argv[1], "-") == 0)

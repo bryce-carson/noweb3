@@ -54,7 +54,7 @@ NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
-.PHONY: help transfer
+.PHONY: help transfer install pdf
 
 help :
 	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
@@ -203,7 +203,8 @@ checksame:
 	$(DIFF) $(BUILD_EXEC)/22 $(BUILD_EXEC)/23
 	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
-pdf: install
+pdf:
+	@echo "Building the PDF mail fail if you don't have no installed properly."
 	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
 
 install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))

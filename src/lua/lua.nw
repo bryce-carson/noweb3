@@ -1,30 +1,37 @@
-<!-- Markdown & Noweb -->
-<!-- Using a local poly-noweb-md mode, but that's currently broken. -->
 
-# `autodefs.nw`: automatic definitions recognition (in Icon)
+\section{autodefs.nw}
+
+\subsection{automatic definitions recognition (in Icon)}
 
 This section is never tangled, because the code wasn't converted from Icon to
 Lua, except (apparently) the first line.
 
-    function Stages.autodefs(sourcebuf, sinkbuf, watcher)
-      procedure go()
-      local line
-      while line := read() do {
-          apply(prepass, line)
-          write(line)
-          if match("@fatal ", line) then exit(1)
-            apply(postpass, line)
-            }
-      end
+\begin{verbatim}
+function Stages.autodefs(sourcebuf, sinkbuf, watcher)
+  procedure go()
+  local line
+  while line := read() do {
+      apply(prepass, line)
+      write(line)
+      if match("@fatal ", line) then exit(1)
+        apply(postpass, line)
+        }
+  end
 
-      procedure apply(pass, line)
-      line ? (="@" & pass(tab(upto(' ')|0),  if =" " then tab(0) else &null))
-    end
+  procedure apply(pass, line)
+  line ? (="@" & pass(tab(upto(' ')|0),  if =" " then tab(0) else &null))
+end
+\end{verbatim}
 
-> `indextext` is a hack to introduce suitable "`@index nl`", but it
-> messes up the line counts!
 
-    procedure writedefn(defn, locl)
+
+\begin{quotation}
+[[indextext]] is a hack to introduce suitable ``[[@index nl]]'',
+but it messes up the line counts!
+\end{quotation}
+
+\begin{verbatim}
+procedure writedefn(defn, locl)
     static indextext
     initial indextext := ""
     if /defn then
@@ -39,22 +46,29 @@ Lua, except (apparently) the first line.
     procedure rcsinfo_too () 
     return "$Id$" ||
     "$Name$"
-    end
+end
+\end{verbatim}
 
-There's only one separate module used in this section, "flush index", but since
+
+There's only one separate module used in this section, ``flush index'', but since
 this section is no longer formatted as Noweb chunks just consider the following
-pre-formatted text to be the "flush index" code chunk.
+pre-formatted text to be the ``flush indexl'' code chunk.
 
-    { # write("@index nl")		# don't!
-    indextext := ""
-    }
+\begin{quotation}
+\begin{verbatim}
+{ # write("@index nl")		# don't!
+indextext := ""
+}
+\end{verbatim}
+\end{quotation}
 
-# Internal filters
-This section was originally in the file "cat.nw".
+\section{Internal filters}
+This section was originally in the file ``cat.nw''.
 
 I have suspicions about the original formatting of the line referencing the
-"announce `argv`" chunk. That was `-- < announce [[argv]]>>`. It's a valid Lua
-comment, but it wouldn't properly expand in Noweb. Did Norman intend this as an
+``announce [[argv]]'' chunk.
+That was ``-- < announce [[argv]]>>''. It's a valid Lua
+comment, but it wouldn't properly expand in Noweb. Did Ramsey intend this as an
 escaped reference (`@<<`)? For now I will keep it as an escaped chunk reference,
 sine it was definitely a comment and therefore ineffective code.
 
@@ -83,36 +97,35 @@ end
   writetox(out)
 @
 
-# Conditional tangling
-
-The following $\LaTeX{}$ module was used to keep Hacker's guide documentation
+\section{Conditional tangling}
+The following \LaTeX{} module was used to keep Hacker's guide documentation
 close to its definition, but allowing it to be tangled into a separate document.
 
-    @<<hackers: subsubsections for internal sinks>>=
+<<hackers: subsubsections for internal sinks>>=
 
-    \subsubsection{The filter \texttt{Stages.cond}}
+\subsubsection{The filter \texttt{Stages.cond}}
 
-    The filter \texttt{Stages.cond} enables the Noweb programmer to
-    include code chunks conditionally.
-    The filter is sensitive to chunk definitions in the following form:
-    \begin{quote}
-    \texttt{@<<\textrm{\emph{name}} ((\textrm{\emph{condition}}))@>>=}
-    \end{quote}
-    where \emph{name} is the name of the chunk, as usual, and
-    \emph{condition} is a restricted Boolean expression in Lua.
-    The \emph{condition} may not include function calls, and it may not
-    use Lua reserved words other than \texttt{and}, \texttt{or}, and~\texttt{not}.
+The filter \texttt{Stages.cond} enables the Noweb programmer to
+include code chunks conditionally.
+The filter is sensitive to chunk definitions in the following form:
+\begin{quote}
+\texttt{@<<\textrm{\emph{name}} ((\textrm{\emph{condition}}))@>>=}
+\end{quote}
+where \emph{name} is the name of the chunk, as usual, and
+\emph{condition} is a restricted Boolean expression in Lua.
+The \emph{condition} may not include function calls, and it may not
+use Lua reserved words other than \texttt{and}, \texttt{or}, and~\texttt{not}.
 
-    The arbitrary argument is a list of identifiers; when the
-    \emph{condition} is evaluated, those identifiers are
-    taken to be non-nil, and all other identifiers are taken to be nil.
-    The chunk definition is included in
-    the output from \texttt{tangle} if and only 
-    if the \emph{condition} is true.
-    (The inclusion is implemented using Lee Wittenberg's trick of renaming
-    the definition to \texttt{@<<\textrm{\emph{name}}@>>}.)
+The arbitrary argument is a list of identifiers; when the
+\emph{condition} is evaluated, those identifiers are
+taken to be non-nil, and all other identifiers are taken to be nil.
+The chunk definition is included in
+the output from \texttt{tangle} if and only 
+if the \emph{condition} is true.
+(The inclusion is implemented using Lee Wittenberg's trick of renaming
+the definition to \texttt{@<<\textrm{\emph{name}}@>>}.)
 
-    @
+@
 
 The main trick here is to set things up so that the identifiers have
 the right values during the evaluation of the condition.
@@ -134,9 +147,8 @@ function Stages.cond(sourcebuf, sinkbuf, args)
 end
 @ 
 
-# Configuration files
-
-`do_nwfile` is implemented in the embedding program, not in Lua.
+\section{Configuration files}
+[[do_nwfile]] is implemented in the embedding program, not in Lua.
 
 <<noweb.cfg>>=
 $debug
@@ -233,12 +245,13 @@ function matchpattern(str, pat)
 end
 @
 
-Another Hacker's Guide $\LaTeX{}$ module.
+Another Hacker's Guide \LaTeX{} module.
 
-    @<<hackers: entries for Lua functions>>=
-    errormsg&
-    Takes up to 8~arguments and writes them to standard error.
-    Arguments may be strings, numbers, or lists.\\
+<<hackers: entries for Lua functions>>=
+errormsg&
+Takes up to 8~arguments and writes them to standard error.
+Arguments may be strings, numbers, or lists.\\
+@
 
 <<util.cfg>>=
 function noweb_error(a, b, c, d, e, f, g, h, i)
@@ -248,11 +261,11 @@ end
 
 Yet another.
 
-    @<<hackers: entries for Lua functions>>=
-    noweb\_error&
-    Halts \texttt{noweb} with an error message consisting of up to
-    9~arguments.\\ 
-    @ 
+<<hackers: entries for Lua functions>>=
+noweb\_error&
+Halts \texttt{noweb} with an error message consisting of up to
+9~arguments.\\ 
+@ 
 
 Debug by tracing.
 
@@ -295,13 +308,13 @@ function pipetrace(x)
 end
 @
 
-    @<<hackers: entries for Lua functions>>=
-    pipetrace&
-    If given a non-null argument, starts tracing every call to
-    \texttt{NWB.read} and \texttt{NWB.put}.
-    Useful for debugging pipeline problems.
-    A null argument turns off tracing.\\
-    @ 
+<<hackers: entries for Lua functions>>=
+pipetrace&
+If given a non-null argument, starts tracing every call to
+\texttt{NWB.read} and \texttt{NWB.put}.
+Useful for debugging pipeline problems.
+A null argument turns off tracing.\\
+@ 
 
 <<pipes.cfg>>=
 $debug
@@ -331,12 +344,12 @@ function Win.stringFilter(s)
 end
 @
 
-    @<<hackers: entries for Lua functions>>=
-    Unix.stringFilter&
-    Win.stringFilter&
-    Takes one argument, a shell command,
-    and returns a filter to execute that argument.\\
-    @
+<<hackers: entries for Lua functions>>=
+Unix.stringFilter&
+Win.stringFilter&
+Takes one argument, a shell command,
+and returns a filter to execute that argument.\\
+@
 
 <<sys.cfg>>=
 function Unix.extendPath(dir, file)
@@ -413,12 +426,12 @@ end
 return s .. " }"
 @ 
 
-    @<<hackers: entries for Lua functions>>=
-    image&
-    Attempts to convert any Lua value to string form.\\
-    show&
-    Writes images of up to 6~arguments on the default Lua output.\\
-    @
+<<hackers: entries for Lua functions>>=
+image&
+Attempts to convert any Lua value to string form.\\
+show&
+Writes images of up to 6~arguments on the default Lua output.\\
+@
 
 <<util.cfg>>=
 function show(x, a, b, c, d, e)
@@ -463,12 +476,12 @@ function funname(x)
 end
 @
 
-    @<<hackers: entries for Lua functions>>=
-    funname&
-    Attempts to return a name by which a Lua value can be known.
-    Searches top-level variables, then top-level tables.
-    Typically used to find names of functions.\\
-    @
+<<hackers: entries for Lua functions>>=
+funname&
+Attempts to return a name by which a Lua value can be known.
+Searches top-level variables, then top-level tables.
+Typically used to find names of functions.\\
+@
 
 <<set fallback for connecting pipelines>>=
 function Config.filterfun(x)
@@ -494,7 +507,7 @@ end
 Config.prevpipeconcatfallback = setfallback("concat", Config.pipeconcatfallback)
 @
 
-# Eliding unwanted code chunks
+\section{Eliding unwanted code chunks}
 
 This filter removes from the pipline any code chunk
 whose name matches any of the ``globbing'' patterns given it as
@@ -504,29 +517,28 @@ defined as ``\LA{}RefMan\_Chapter\_14\RA{}''.
 
 You could also use this filter when tangling, but it's not clear why you'd want to.
 
-    @<<hackers: subsubsections for internal filters>>=
-    \subsubsection{The filter \texttt{Stages.elide}}
-    The filter \texttt{Stages.elide} removes code chunks from a stream.
-    It is most frequently used to remove ``code chunks'' that actually
-    contain documentation destined for a man page or user manual.
-    Its arbitrary argument is a list of strings, each of which is a ``glob
-    pattern.''
-    (In a glob pattern, \texttt{*} matches any string, and \texttt{?}
-    matches any single character.)
-    The filter removes definitions matching any of the glob patterns in
-    the arguments.
-    For example, this section of this manual
-    actually appears in a code chunk named
-    \emph{$\langle$hackers: subsections for internal filters$\rangle$}.
-    To prepare internal documentation for the stages, we use
-    \texttt{Stages.elide} with the argument \texttt{hackers:*}.
+<<hackers: subsubsections for internal filters>>=
+\subsubsection{The filter \texttt{Stages.elide}}
+The filter \texttt{Stages.elide} removes code chunks from a stream.
+It is most frequently used to remove ``code chunks'' that actually
+contain documentation destined for a man page or user manual.
+Its arbitrary argument is a list of strings, each of which is a ``glob
+pattern.''
+(In a glob pattern, \texttt{*} matches any string, and \texttt{?}
+matches any single character.)
+The filter removes definitions matching any of the glob patterns in
+the arguments.
+For example, this section of this manual
+actually appears in a code chunk named
+\emph{$\langle$hackers: subsections for internal filters$\rangle$}.
+To prepare internal documentation for the stages, we use
+\texttt{Stages.elide} with the argument \texttt{hackers:*}.
 
-    FIXME: Also undocumented \texttt{-eat} option.
+FIXME: Also undocumented \texttt{-eat} option.
 
-    @
+@
 
-## Eliding
-
+\subsection{Eliding}
 The main loop simply copies the input to the output.
 We stop only if we see [[@begin code]], because that means we might
 need to elide.
@@ -610,8 +622,8 @@ while i <= n and not matches do
 end
 @
 
-`Stages.elideuse` elides uses, plus following whitespace,
-and if whitespace and a newline follow, the use and the preceding whitespace.
+[[Stages.elideuse]] elides uses, plus following whitespace, and if whitespace
+and a newline follow, the use and the preceding whitespace.
 
 <<elide.nws>>=
 function Stages.elideuse(sourcebuf, sinkbuf, globs)
@@ -659,9 +671,8 @@ function Stages.elideuse(sourcebuf, sinkbuf, globs)
 end
 @
 
-# Filters for removing and altering text lines
-
-`Lines.strfind` extends `strfind` to lists.
+\section{Filters for removing and altering text lines}
+[[Lines.strfind]] extends [[strfind]] to lists.
 
 <<lines.nws>>=
 Lines = Lines or { }
@@ -680,8 +691,7 @@ end
 
 @ 
 
-`Stages.droptext` removes texts that match any pattern in the
-argument.
+[[Stages.droptext]] removes texts that match any pattern in the argument.
 Argument may be a pattern or a list of patterns.
 
 <<lines.nws>>=
@@ -713,7 +723,9 @@ function Lines.strfindlist(haystack, needles, n)
   return nil
 end
 @ 
+
 [[Stages.eattext]] replaces matching texts with a literal [[\eatline]].
+
 <<lines.nws>>=
 -- remove texts containing the evil string
 function Stages.eattext(inbuf, outbuf, evil)
@@ -735,31 +747,31 @@ end
 
 More *Hacker's Guide* text.
 
-    @<<hackers: subsubsections for internal filters>>=
-    \subsubsection{The filters \texttt{Stages.droptext} and \texttt{Stages.eattext}}
-    The filters \texttt{Stages.droptext} and \texttt{Stages.eattext}
-    remove text fragment chunks from a stream.
-    They are normally used early in the pipeline so as to remove whole lines.
-    For both filters, the arbitrary argument is either a single string or 
-    a list of strings.
-    Each string is a Lua string pattern, as documented on page~19 of the 
-    Lua~2.5$+$nw manual.
-    \texttt{Stages.droptext} simply removes text parts matching the pattern.
-    Because it preserves newlines, it can be used to ``blank out'' 
-    (replace with an empty line) code that is not wanted when tangling.
-    \texttt{Stages.eattext} replaces the matching text with
-    \verb+\eatline+.
-    It is useful for making lines disappear during weaving, without throwing off the 
-    line numbers in the \TeX\ file.
-    These filters exist only because they preserve newlines; otherwise, 
-    it would be simpler to use \texttt{grep~-v}.
-    @ 
+<<hackers: subsubsections for internal filters>>=
+\subsubsection{The filters \texttt{Stages.droptext} and \texttt{Stages.eattext}}
+The filters \texttt{Stages.droptext} and \texttt{Stages.eattext}
+remove text fragment chunks from a stream.
+They are normally used early in the pipeline so as to remove whole lines.
+For both filters, the arbitrary argument is either a single string or 
+a list of strings.
+Each string is a Lua string pattern, as documented on page~19 of the 
+Lua~2.5$+$nw manual.
+\texttt{Stages.droptext} simply removes text parts matching the pattern.
+Because it preserves newlines, it can be used to ``blank out'' 
+(replace with an empty line) code that is not wanted when tangling.
+\texttt{Stages.eattext} replaces the matching text with
+\verb+\eatline+.
+It is useful for making lines disappear during weaving, without throwing off the 
+line numbers in the \TeX\ file.
+These filters exist only because they preserve newlines; otherwise, 
+it would be simpler to use \texttt{grep~-v}.
+@ 
 
-# Lists
+\section{Lists}
 
-    @<<hackers: entries for list functions>>=
-    List.length&Number of elements in a list.\\
-    @
+<<hackers: entries for list functions>>=
+List.length&Number of elements in a list.\\
+@
 
 <<list.nws>>=
 List = {}
@@ -804,9 +816,9 @@ function List.slow_length(list)
 end
 @ 
 
-    @<<hackers: entries for list functions>>=
-    List.is&Returns non-nil if the argument is a list.\\
-    @
+<<hackers: entries for list functions>>=
+List.is&Returns non-nil if the argument is a list.\\
+@
 
 <<list.nws>>=
 function List.is(list)
@@ -818,11 +830,11 @@ function List.is(list)
 end
 @
 
-    @<<hackers: entries for list functions>>=
-    List.get&
-    Removes and returns the first element of a list.
-    Side-effects (modifies) the list.\\
-    @
+<<hackers: entries for list functions>>=
+List.get&
+Removes and returns the first element of a list.
+Side-effects (modifies) the list.\\
+@
 
 <<list.nws>>=
 function List.get(list)
@@ -839,11 +851,11 @@ function List.get(list)
 end
 @
 
-    @<<hackers: entries for list functions>>=
-    List.put&
-    Takes two arguments, a list and an item, 
-    and appends the item to the end of the list.\\
-    @
+<<hackers: entries for list functions>>=
+List.put&
+Takes two arguments, a list and an item, 
+and appends the item to the end of the list.\\
+@
 
 <<*>>=
 function List.put(list, item)
@@ -851,11 +863,11 @@ function List.put(list, item)
 end
 @ 
 
-    @<<hackers: entries for list functions>>=
-    List.flatten&
-    Takes the values in a list, converts them to strings with
-    \texttt{tostring}, and concatenates them.\\
-    @
+<<hackers: entries for list functions>>=
+List.flatten&
+Takes the values in a list, converts them to strings with
+\texttt{tostring}, and concatenates them.\\
+@
 
 <<list.nws>>=
 function List.flatten(l)
@@ -866,10 +878,10 @@ function List.flatten(l)
 end
 @ 
 
-    @<<hackers: entries for list functions>>=
-    List.concat&
-    Concatenates two lists, returning the new list as a result.\\
-    @
+<<hackers: entries for list functions>>=
+List.concat&
+Concatenates two lists, returning the new list as a result.\\
+@
 
 <<list.nws>>=
 function List.concat(l1, l2)
@@ -892,13 +904,13 @@ end
 
 @ 
 
-    @<<hackers: entries for list functions>>=
-    List.new&
-    Takes a table literal and returns a list, or 
-    given no argument, returns a fresh, empty list.
-    Recommended in case \texttt{noweb} moves to a more efficient
-    implementation of lists.\\
-    @
+<<hackers: entries for list functions>>=
+List.new&
+Takes a table literal and returns a list, or 
+given no argument, returns a fresh, empty list.
+Recommended in case \texttt{noweb} moves to a more efficient
+implementation of lists.\\
+@
 
 <<list.nws>>=
 function List.new(tbl)
@@ -906,12 +918,12 @@ function List.new(tbl)
 end
 @ 
 
-    @<<hackers: entries for list functions>>=
-    List.tostring&
-    Concatenates list elements as strings.
-    Takes a list and a second argument, the ``separator.''
-    Separator defaults to a space.\\
-    @
+<<hackers: entries for list functions>>=
+List.tostring&
+Concatenates list elements as strings.
+Takes a list and a second argument, the ``separator.''
+Separator defaults to a space.\\
+@
 
 <<list.nws>>=
 -- concatenate list elements as strings
@@ -933,10 +945,10 @@ function List.tostring(l, sep)
 end
 @
 
-    @<<hackers: entries for list functions>>=
-    List.fromstring&
-    Takes a string, splits it on white space, and makes a list of the results.\\
-    @
+<<hackers: entries for list functions>>=
+List.fromstring&
+Takes a string, splits it on white space, and makes a list of the results.\\
+@
 
 <<list.nws>>=
 -- concatenate list elements as strings
@@ -966,57 +978,59 @@ end
 List.prevconcatfallback = setfallback("concat", List.concatfallback)
 @
 
-# Cross-reference and index support
+\section{Cross-reference and index support}
 
-    Missing ``{\tt @xref tag} {\it label tag},'' where {\it label} is the name of 
-    a label and {\it tag} is a chunk number, page number, sub-page number, or
-    other identifying mark.
+\begin{quotation}
+  Missing ``{\tt @xref tag} {\it label tag},'' where {\it label} is the name of
+  a label and {\it tag} is a chunk number, page number, sub-page number, or
+  other identifying mark.
+\end{quotation}
 
 <<noidx.nws>>=
 Noidx = { }
 
 @
 
-    @<<hackers: subsubsections for internal filters>>=
-    \subsubsection{The filter \texttt{Stages.noidx}}
-    
-    \texttt{Stages.noidx} computes all the index and cross-reference information
-    represented by the \nkw{INDEX} and \nkw{XREF} keys.
-    Its arbitrary argument is a list of strings denoting options.
-    
-    The {\tt -delay}  option delays heading material until
-    after the first chunk, and brings trailing material before the last
-    chunk.
-    In particular, it causes
-    the list of chunks and the index of identifiers to be emitted before
-    the last chunk.
-    
-    The {\tt -docanchor $n$} option sets the anchor for a code chunk.
-    \begin{enumerate}
-    \item
-    If a documentation chunk precedes the code chunk and is $n$ or more lines long,
-     put the anchor $n$~lines from the end of that documentation chunk.
-    \item
-    If a documentation chunk precedes the code chunk and is fewer than $n$~lines long, 
-    put the anchor at the beginning of that documentation chunk.
-    \item
-    If no documentation chunk precedes the code chunk, 
-    put the anchor at the beginning of
-    the code chunk, just as if {\tt -docanchor} had not been used.
-    \end{enumerate}
-    This option is used to create anchors suitable for the HTML back end.
-    Its effect is to make hyperlinks jump to the documentation preceding a code chunk 
-    rather than to the code chunk itself.
-    
-    The \texttt{-dbout \emph{file}} option causes the filter to emit, on
-    \emph{file}, information about the first and last definitions of
-    chunks in this file.
-    (What about uses?)
-    
-    The \texttt{-dbin file} option notes that chunks may be linked in from
-    a preceding or succeeding file, as determined by
-    whether \texttt{-dbin} precedes or succeeds \texttt{-dbout}.
-    @
+<<hackers: subsubsections for internal filters>>=
+\subsubsection{The filter \texttt{Stages.noidx}}
+
+\texttt{Stages.noidx} computes all the index and cross-reference information
+represented by the \nkw{INDEX} and \nkw{XREF} keys.
+Its arbitrary argument is a list of strings denoting options.
+
+The {\tt -delay}  option delays heading material until
+after the first chunk, and brings trailing material before the last
+chunk.
+In particular, it causes
+the list of chunks and the index of identifiers to be emitted before
+the last chunk.
+
+The {\tt -docanchor $n$} option sets the anchor for a code chunk.
+\begin{enumerate}
+\item
+If a documentation chunk precedes the code chunk and is $n$ or more lines long,
+ put the anchor $n$~lines from the end of that documentation chunk.
+\item
+If a documentation chunk precedes the code chunk and is fewer than $n$~lines long, 
+put the anchor at the beginning of that documentation chunk.
+\item
+If no documentation chunk precedes the code chunk, 
+put the anchor at the beginning of
+the code chunk, just as if {\tt -docanchor} had not been used.
+\end{enumerate}
+This option is used to create anchors suitable for the HTML back end.
+Its effect is to make hyperlinks jump to the documentation preceding a code chunk 
+rather than to the code chunk itself.
+
+The \texttt{-dbout \emph{file}} option causes the filter to emit, on
+\emph{file}, information about the first and last definitions of
+chunks in this file.
+(What about uses?)
+
+The \texttt{-dbin file} option notes that chunks may be linked in from
+a preceding or succeeding file, as determined by
+whether \texttt{-dbin} precedes or succeeds \texttt{-dbout}.
+@
 
 <<noidx.nws>>=
 function Stages.noidx(sourcebuf, sinkbuf, args)
@@ -1458,7 +1472,7 @@ if new[newnext-1] ~= item then
 end
 @
 
-`uniqueid` eliminates both $\TeX{}$ and HTML specials.
+[[uniqueid]] eliminates both \TeX{} and HTML specials.
 Key counts can be initialized by a cheating, lying script elsewhere.
 
 <<initialization>>=
@@ -1625,15 +1639,17 @@ function Noidx.rcsinfo ()
 end
 @
 
-# Sets
+\section{Sets}
 
 <<set.nws>>=
 Set = {}
 @
-    @<<hackers: entries for set functions>>=
-    Set.length&
-    Number of elements in a set.\\
-    @
+
+<<hackers: entries for set functions>>=
+Set.length&
+Number of elements in a set.\\
+@
+
 <<set.nws>>=
 function Set.length(set)
   local i, n, v
@@ -1648,10 +1664,10 @@ function Set.length(set)
   return n
 end
 @
-    @<<hackers: entries for set functions>>=
-    Set.members&
-    Returns list of the elements in a set.\\
-    @
+@<<hackers: entries for set functions>>=
+Set.members&
+Returns list of the elements in a set.\\
+@
 <<set.nws>>=
 function Set.members(set)
   local i, n, v
@@ -1668,15 +1684,15 @@ function Set.members(set)
   return List.new(l)
 end
 @
-    @<<hackers: entries for set functions>>=
-    Set.insert&
-    Takes a set and an item, and adds the item to the set.\\
-    Set.delete&
-    Takes a set and an item, and removes the item from the set, if present.\\
-    Set.member&
-    Takes a set and an item, and returns non-null if and only if the item
-    is in the set.\\
-    @
+<<hackers: entries for set functions>>=
+Set.insert&
+Takes a set and an item, and adds the item to the set.\\
+Set.delete&
+Takes a set and an item, and removes the item from the set, if present.\\
+Set.member&
+Takes a set and an item, and returns non-null if and only if the item
+is in the set.\\
+@
 <<set.nws>>=
 function Set.insert(set, item)
   if type(set) ~= "table" then
@@ -1694,12 +1710,12 @@ function Set.member(set, item)
 end
 @
 
-    @<<hackers: entries for set functions>>=
-    Set.diff&
-    \texttt{Set.diff(s1, s2)} returns a new set containing 
-    all of the elements of~\texttt{s1} that are not members of~\texttt{s2}.
-    Fallbacks are set up so the subtraction operator invokes \texttt{Set.diff}.\\
-    @
+<<hackers: entries for set functions>>=
+Set.diff&
+\texttt{Set.diff(s1, s2)} returns a new set containing 
+all of the elements of~\texttt{s1} that are not members of~\texttt{s2}.
+Fallbacks are set up so the subtraction operator invokes \texttt{Set.diff}.\\
+@
 
 <<set.nws>>=
 function Set.diff(big, little)
@@ -1716,13 +1732,13 @@ function Set.diff(big, little)
 end
 @
 
-    @<<hackers: entries for set functions>>=
-    Set.new&
-    Takes a list of elements and returns a set containing those elements.
-    With no argument, returns a fresh, empty set.
-    Recommended in case \texttt{noweb} moves to a more efficient
-    implementation of sets.\\
-    @
+<<hackers: entries for set functions>>=
+Set.new&
+Takes a list of elements and returns a set containing those elements.
+With no argument, returns a fresh, empty set.
+Recommended in case \texttt{noweb} moves to a more efficient
+implementation of sets.\\
+@
 
 <<set.nws>>=
 function Set.new (tbl)
@@ -1748,30 +1764,30 @@ end
 Set.prevarithfallback = setfallback("arith", Set.arithfallback)
 @
 
-# Simple conditional tangling
+\section{Simple conditional tangling}
 
-    @<<hackers: subsubsections for internal sinks>>=
-    \subsubsection{The filter \texttt{Stages.stripconds}}
-    
-    The filter \texttt{Stages.stripconds} enables the Noweb programmer to
-    include code chunks conditionally.
-    The filter is sensitive to chunk definitions in the following form:
-    \begin{quote}
-    \texttt{@<<\textrm{\emph{name}} ((\textrm{\emph{condition}}))@>>=}
-    \end{quote}
-    where \emph{name} is the name of the chunk, as usual, and
-    \emph{condition} is a simple identifier.
-    
-    The arbitrary argument is a list of identifiers; if
-    \emph{condition} is one of the identifiers, it is removed from the
-    definition, arranging that the chunk becomes a definition of
-    \texttt{@<<\textrm{\emph{name}}@>>}.
-    The effect is that
-    the chunk definition is included in
-    the output from \texttt{tangle} if and only 
-    if the \emph{condition} is one of the identifiers passed to 
-    \texttt{Stages.stripconds}.
-    @
+<<hackers: subsubsections for internal sinks>>=
+\subsubsection{The filter \texttt{Stages.stripconds}}
+
+The filter \texttt{Stages.stripconds} enables the Noweb programmer to
+include code chunks conditionally.
+The filter is sensitive to chunk definitions in the following form:
+\begin{quote}
+\texttt{@<<\textrm{\emph{name}} ((\textrm{\emph{condition}}))@>>=}
+\end{quote}
+where \emph{name} is the name of the chunk, as usual, and
+\emph{condition} is a simple identifier.
+
+The arbitrary argument is a list of identifiers; if
+\emph{condition} is one of the identifiers, it is removed from the
+definition, arranging that the chunk becomes a definition of
+\texttt{@<<\textrm{\emph{name}}@>>}.
+The effect is that
+the chunk definition is included in
+the output from \texttt{tangle} if and only 
+if the \emph{condition} is one of the identifiers passed to 
+\texttt{Stages.stripconds}.
+@
 
 <<stripconds.nws>>=
 function Stages.stripconds(sourcebuf, sinkbuf, args)
@@ -1807,7 +1823,7 @@ while i <= argc do
 end
 @
 
-# Tangle
+\section{Tangle}
 
 <<tangle.nws>>=
 -- Copyright 1991 by Norman Ramsey.  All rights reserved.
@@ -1884,26 +1900,26 @@ end
 exit(P.run(p))
 @
 
-# Converting `noweb` markup to HTML markup (Lua version)
+\section{Converting [[noweb]] markup to HTML markup (Lua version)}
 
-    @<<hackers: subsubsections for internal sinks>>=
-    \subsubsection{The sink \texttt{Stages.tohtml}}
-    
-    This back end emits HTML.
-    It uses the formatter {\tt html} with \nkw{HEADER} and \nkw{TRAILER} to
-    emit suitable HTML boilerplate.
-    For other formatters (like {\tt none}) it emits no header or trailer.
-    Its arbitrary argument is a list of options:
-    \begin{quote}
-    \begin{tabularx}{\linewidth}{lX}
-    \tt -delay&Accepted, for compatibility with other back ends, but ignored.\\
-    \tt -localindex&Produces local identifier cross-reference after each code chunk.\\
-    \tt -raw&Wraps text generated for code chunks in a {\LaTeX} {\tt rawhtml}
-    environment, making the whole document suitable for processing with
-    {\tt latex2html}.\\
-    \end{tabularx}
-    \end{quote}
-    @
+<<hackers: subsubsections for internal sinks>>=
+\subsubsection{The sink \texttt{Stages.tohtml}}
+
+This back end emits HTML.
+It uses the formatter {\tt html} with \nkw{HEADER} and \nkw{TRAILER} to
+emit suitable HTML boilerplate.
+For other formatters (like {\tt none}) it emits no header or trailer.
+Its arbitrary argument is a list of options:
+\begin{quote}
+\begin{tabularx}{\linewidth}{lX}
+\tt -delay&Accepted, for compatibility with other back ends, but ignored.\\
+\tt -localindex&Produces local identifier cross-reference after each code chunk.\\
+\tt -raw&Wraps text generated for code chunks in a {\LaTeX} {\tt rawhtml}
+environment, making the whole document suitable for processing with
+{\tt latex2html}.\\
+\end{tabularx}
+\end{quote}
+@
 
 The [[-raw]] option brackets HTML with [[\begin{rawhtml}]] and 
 [[\end{rawhtml}]]; the purpose is to embed HTML in a {\LaTeX} 
@@ -1979,8 +1995,8 @@ else
   end
 @ 
 
-`ecode` is the marker used at the end of the current code chunk. If there is no
-cross-reference stuff at the end, we just use `</pre>`; otherwise we terminate
+[[ecode]] is the marker used at the end of the current code chunk. If there is no
+cross-reference stuff at the end, we just use [[</pre>]]; otherwise we terminate
 whatever environment is used for the cross-reference stuff.
 
 <<code chunks>>=
@@ -2471,7 +2487,7 @@ function Tohtml.convquotes(s)
 end
 @ 
 
-# Converting `noweb` markup to $\TeX{}$ markup (Lua version)
+# Converting [[noweb]] markup to $\TeX{}$ markup (Lua version)
 
 The copyright applies both to the {\tt noweb} source and to the
 generated shell script.
@@ -3069,9 +3085,9 @@ if space_pending then
 end
 @ 
 
-# Weaving a `noweb` file into a $\TeX{}$ file
+# Weaving a [[noweb]] file into a $\TeX{}$ file
 
-The copyright applies both to the `noweb` source and to the
+The copyright applies both to the [[noweb]] source and to the
 generated shell script.
 
 <<copyright notice>>=
@@ -3752,9 +3768,10 @@ The external database is itself simply a list of Noweb files. It's a bit more
 liberal than defined above; a chunk is considered empty if its definition
 contains at most whitespace.
 
-> [!NOTE]
-> *Nota bene:* this code lacks support for the `-merge` and `-summary` options
-> supported by the Icon version.
+\begin{quotation}
+  \emph{Nota bene:} this code lacks support for the [[-merge]] and [[-summary]]
+  options supported by the Icon version.
+\end{quotation}
 
 A late-breaking bug: we need to resynchronize line numbers.
 <<xchunks.nws>>=
@@ -3864,36 +3881,36 @@ function Xchunks.defnstable(chunks)
 end
 @ 
 
-# Lua 5.5+
-
+\section{Lua 5.5.0}
 Lua 2.5+nw code compatible with Lua 5+ (the plus symbol means different things
 for each version) will be included in the "Compatible" subsection and that code
 which is incompatible with Lua 5+ will be in the "Incompatible" subsection.
 
-## Compatible: Lua 2.5
+\subsection{Compatible: Lua 2.5}
 
-## Incompatible: Lua 2.5+nw
+\subsection{Incompatible: Lua 2.5+nw}
 
-Three additional reserved words useful to the implementation of `no` are added to Lua 2.5 to make it Lua 2.5+nw,
-they are:
+Three additional reserved words useful to the implementation of [[no]] are added
+to Lua 2.5 to make it Lua 2.5+nw, they are:
 
-- `case`
-- `globmatch`
-- `of`
+\begin{list}{}{}
+\item [[case]]
+\item [[globmatch]]
+\item [[of]]
+\end{list}
 
 These additional keywords are used as below, in the C definition of the parsing
 of the modified Lua syntax.
 
-> ```{c}
-> | CASE expr1 OF case_body END
->
-> | GLOBMATCH expr1 OF glob_body END
-> ```
+\begin{verbatim}
+| CASE expr1 OF case_body END
 
-There's also an additional token in the abstract syntax of Lua, `ARROW`.
+| GLOBMATCH expr1 OF glob_body END
+\end{verbatim}
 
-### Converting documentation chunks to comments
+There's also an additional token in the abstract syntax of Lua, [[ARROW]].
 
+\subsubsection{Converting documentation chunks to comments}
 This filter converts documentation chunks to comments. It will use whichever
 commentary syntax is appropriate and convert the documentation in the docs
 chunks into comments. It is meant to be used with tangle for distributing
@@ -3992,11 +4009,12 @@ function grab(s) {
 eval "$LIB/nt $opt"
 @
 
-The definitions in this chunk utilize the new `case` and `of` reserved words. It appears that the cases in this code are inspired by AWK.
+The definitions in this chunk utilize the new [[case]] and [[of]] reserved
+words. It appears that the cases in this code are inspired by AWK.
 
 @
+@
 
-<!-- Local Variables: -->
-<!-- mode: clean -->
-<!-- polymode-default-inner-mode: lua-mode -->
-<!-- End: -->
+% Local Variables:
+% polymode-default-inner-mode: lua-mode
+% End:
