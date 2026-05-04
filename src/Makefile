@@ -1,45 +1,81 @@
 srcdir ?= .
-ifeq ($(findstring "guile",$(.FEATURES)),)
-what="$(srcdir)/options.scm"
-$(guile (load ${what}))
-undefine what
-else
-<<options>>
-endif
+
+## System calls
+PIPE ?= fork
+
+## Paths
+BIN ?= /usr/bin
+LIBEXEC ?= /usr/libexec/rammel
+TEXINPUTS ?= /usr/share/texlive/texmf-local/tex/latex/rammel
+SHELL ?= /usr/bin/bash
+
+## Compiler, linker-loader, and archiver options
+## Compiler
+CC ?= gcc
+CFLAGS ?= -ansi -pedantic -std=c11 -c
+XCFLAGS ?= 
+## Linker-loader
+LD ?= gcc
+LIBPROLOGUE ?= 
+LDFLAGS ?= -lc
+LIBEPILOGUE ?= 
+
+## Archiver
+AR ?= ar
+RANLIB ?= ranlib
+
+CIIMAXALIGN ?= 
+
+XINCLUDES ?= 
+
+POPEN ?= 
+POSIX ?= 
+STRERROR ?= 
 
 ## These are built-in make variables, and may as well be overridden with noweb
 ## variants (when not initialized as more).
-TANGLE=more
-WEAVE=noweave
-PLATFORM="unix"
+TANGLE ?= more
+WEAVE ?= noweave
+PLATFORM ?= "unix"
 
 ## INSTALL* is recommended by the GNU Coding Standards, and is extremely
 ## prevalent. It also enables a more maintainable Makefile.
-INSTALL=install
-INSTALL_PROGRAM=$(INSTALL)
-INSTALL_DATA=$(INSTALL) -m 644
+INSTALL ?= install
+INSTALL_PROGRAM ?= $(INSTALL)
+INSTALL_DATA ?= $(INSTALL) -m 644
 
 BUILDDIR ?= $(srcdir)/../build
-VPATH = $(BUILDDIR)
+VPATH  ?= $(BUILDDIR)
 
-BUILD_EXEC=$(BUILDDIR)$(LIBEXEC)
-BUILD=$(srcdir)/mkinstalldirs | $(BUILD_EXEC)
+BUILD_EXEC ?= $(BUILDDIR)$(LIBEXEC)
+BUILD ?= $(srcdir)/mkinstalldirs | $(BUILD_EXEC)
 
-NOCOND=$(BUILD_EXEC)/tools/nocond
+NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
-
 .PHONY: help transfer
 
-ifeq ($(findstring "guile",$(.FEATURES)),)
-help_msg="GNU Make should have allowed the embedded guile process to report some helpful information."
-else
-help_msg="Inspect the variables at the top of the Makefile and use an WWW search engine or GNU manuals to understand the variables contents."
-endif
-
-help:
-	@echo $(help_msg)
+help :
+	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
+	@echo "BIN (by default, \"$(BIN)\"): The installation location for user programs."
+	@echo "LIBEXEC (by default, \"$(LIBEXEC)\"): The installation location for programs used only by user programs."
+	@echo "TEXINPUTS (by default, \"$(TEXINPUTS)\"): The installation location for LaTeX and TeX style and class files."
+	@echo "SHELL (by default, \"$(SHELL)\"): The shell to use when invoking recipe rules."
+	@echo "CC (by default, \"$(CC)\"): The command to invoke a C compiler."
+	@echo "CFLAGS (by default, \"$(CFLAGS)\"): C compilation flags."
+	@echo "XCFLAGS (by default, \"$(XCFLAGS)\"): Additional C compilation flags specific to the compilation of no''"
+	@echo "LD (by default, \"$(LD)\"): The command to invoke a C linker-loader."
+	@echo "LIBPROLOGUE (by default, \"$(LIBPROLOGUE)\"): Anything that should precede LDFLAGS when invoking the linker-loader."
+	@echo "LDFLAGS (by default, \"$(LDFLAGS)\"): C linker-loader flags."
+	@echo "LIBEPILOGUE (by default, \"$(LIBEPILOGUE)\"): Anything that should succeed LDFLAGS when invoking the linker-loader."
+	@echo "AR (by default, \"$(AR)\"): The command to invoke a C archiver."
+	@echo "RANLIB (by default, \"$(RANLIB)\"): The command to invoke ranlib."
+	@echo "CIIMAXALIGN (by default, \"$(CIIMAXALIGN)\"): The value for maximum alignment used when compiling CII; see CIIs index.html for more information."
+	@echo "XINCLUDES (by default, \"$(XINCLUDES)\"): Additional libraries to include when compiling the no' command.'"
+	@echo "POPEN (by default, \"$(POPEN)\"): TODO: document this option."
+	@echo "POSIX (by default, \"$(POSIX)\"): Whether or not this system is POSIX-compliant."
+	@echo "STRERROR (by default, \"$(STRERROR)\"): TODO: document this option."
 
 all: code scripts styles
 
@@ -65,10 +101,10 @@ code: tools ciilib lualib
 	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=../lua-2.5.1" "LUALIB=$(BUILD_EXEC)/lua-2.5.1" "OUTPUT=$(BUILD_EXEC)/c"
 
 scripts: tools
-	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 
 styles: tools
-	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS= | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
 careful:
 	$(MAKE) clobber

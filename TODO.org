@@ -83,49 +83,85 @@ Lua language.
 ** Top-level
 The top-level makefile parses the make command-line options and validates them.
 
-#+begin_src makefile :tangle src/Makefile
+#+begin_src makefile :noweb no-export :tangle src/Makefile
   srcdir ?= .
-  ifeq ($(findstring "guile",$(.FEATURES)),)
-  what="$(srcdir)/options.scm"
-  $(guile (load ${what}))
-  undefine what
-  else
-  <<options>>
-  endif
+
+  ## System calls
+  PIPE ?= fork
+
+  ## Paths
+  BIN ?= /usr/bin
+  LIBEXEC ?= /usr/libexec/rammel
+  TEXINPUTS ?= /usr/share/texlive/texmf-local/tex/latex/rammel
+  SHELL ?= /usr/bin/bash
+
+  ## Compiler, linker-loader, and archiver options
+  ## Compiler
+  CC ?= gcc
+  CFLAGS ?= -ansi -pedantic -std=c11 -c
+  XCFLAGS ?= 
+  ## Linker-loader
+  LD ?= gcc
+  LIBPROLOGUE ?= 
+  LDFLAGS ?= -lc
+  LIBEPILOGUE ?= 
+
+  ## Archiver
+  AR ?= ar
+  RANLIB ?= ranlib
+
+  CIIMAXALIGN ?= 
+
+  XINCLUDES ?= 
+
+  POPEN ?= 
+  POSIX ?= 
+  STRERROR ?= 
 
   ## These are built-in make variables, and may as well be overridden with noweb
   ## variants (when not initialized as more).
-  TANGLE=more
-  WEAVE=noweave
-  PLATFORM="unix"
+  TANGLE ?= more
+  WEAVE ?= noweave
+  PLATFORM ?= "unix"
 
   ## INSTALL* is recommended by the GNU Coding Standards, and is extremely
   ## prevalent. It also enables a more maintainable Makefile.
-  INSTALL=install
-  INSTALL_PROGRAM=$(INSTALL)
-  INSTALL_DATA=$(INSTALL) -m 644
+  INSTALL ?= install
+  INSTALL_PROGRAM ?= $(INSTALL)
+  INSTALL_DATA ?= $(INSTALL) -m 644
 
   BUILDDIR ?= $(srcdir)/../build
-  VPATH = $(BUILDDIR)
+  VPATH  ?= $(BUILDDIR)
 
-  BUILD_EXEC=$(BUILDDIR)$(LIBEXEC)
-  BUILD=$(srcdir)/mkinstalldirs | $(BUILD_EXEC)
+  BUILD_EXEC ?= $(BUILDDIR)$(LIBEXEC)
+  BUILD ?= $(srcdir)/mkinstalldirs | $(BUILD_EXEC)
 
-  NOCOND=$(BUILD_EXEC)/tools/nocond
+  NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
   # Stop editing. No user-serviceable parts below.
   .EXPORT_ALL_VARIABLES:
-
   .PHONY: help transfer
 
-  ifeq ($(findstring "guile",$(.FEATURES)),)
-  help_msg="GNU Make should have allowed the embedded guile process to report some helpful information."
-  else
-  help_msg="Inspect the variables at the top of the Makefile and use an WWW search engine or GNU manuals to understand the variables contents."
-  endif
-
-  help:
-  	@echo $(help_msg)
+  help :
+  	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
+  	@echo "BIN (by default, \"$(BIN)\"): The installation location for user programs."
+  	@echo "LIBEXEC (by default, \"$(LIBEXEC)\"): The installation location for programs used only by user programs."
+  	@echo "TEXINPUTS (by default, \"$(TEXINPUTS)\"): The installation location for LaTeX and TeX style and class files."
+  	@echo "SHELL (by default, \"$(SHELL)\"): The shell to use when invoking recipe rules."
+  	@echo "CC (by default, \"$(CC)\"): The command to invoke a C compiler."
+  	@echo "CFLAGS (by default, \"$(CFLAGS)\"): C compilation flags."
+  	@echo "XCFLAGS (by default, \"$(XCFLAGS)\"): Additional C compilation flags specific to the compilation of no''"
+  	@echo "LD (by default, \"$(LD)\"): The command to invoke a C linker-loader."
+  	@echo "LIBPROLOGUE (by default, \"$(LIBPROLOGUE)\"): Anything that should precede LDFLAGS when invoking the linker-loader."
+  	@echo "LDFLAGS (by default, \"$(LDFLAGS)\"): C linker-loader flags."
+  	@echo "LIBEPILOGUE (by default, \"$(LIBEPILOGUE)\"): Anything that should succeed LDFLAGS when invoking the linker-loader."
+  	@echo "AR (by default, \"$(AR)\"): The command to invoke a C archiver."
+  	@echo "RANLIB (by default, \"$(RANLIB)\"): The command to invoke ranlib."
+  	@echo "CIIMAXALIGN (by default, \"$(CIIMAXALIGN)\"): The value for maximum alignment used when compiling CII; see CIIs index.html for more information."
+  	@echo "XINCLUDES (by default, \"$(XINCLUDES)\"): Additional libraries to include when compiling the no' command.'"
+  	@echo "POPEN (by default, \"$(POPEN)\"): TODO: document this option."
+  	@echo "POSIX (by default, \"$(POSIX)\"): Whether or not this system is POSIX-compliant."
+  	@echo "STRERROR (by default, \"$(STRERROR)\"): TODO: document this option."
 
   all: code scripts styles
 
@@ -151,10 +187,10 @@ The top-level makefile parses the make command-line options and validates them.
   	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=../lua-2.5.1" "LUALIB=$(BUILD_EXEC)/lua-2.5.1" "OUTPUT=$(BUILD_EXEC)/c"
 
   scripts: tools
-  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 
   styles: tools
-  	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+  	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS= | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
   careful:
   	$(MAKE) clobber
@@ -291,211 +327,6 @@ The top-level makefile parses the make command-line options and validates them.
   	-$(RMDIR) $(BUILD_EXEC)/tex
 #+end_src
 
-*** TODO Revert to unvalidated, standard Make variables as options
-The options for configuring Rammel are the same as configuring noweb version 3.
-
-#+begin_src makefile :noweb-ref options
-  PIPE=fork
-
-  BIN=/usr/bin
-  LIBEXEC=/usr/libexec/rammel
-  TEXINPUTS=/usr/share/texlive/texmf-local/tex/latex/rammel
-  SHELL=/usr/bin/bash
-
-  CC=gcc
-  CFLAGS="-ansi -pedantic -std=c11 -c"
-  XCFLAGS=
-
-  LD=gcc
-  LIBPROLOGUE=
-  LDFLAGS="-lc"
-  LIBEPILOGUE=
-
-  AR=ar
-
-  RANLIB=ranlib
-
-  CIIMAXALIGN=
-
-  XINCLUDES=
-
-  POPEN=
-
-  POSIX=
-
-  STRERROR=
-#+end_src
-
-*** DONE Guile-validated options
-CLOSED: [2026-04-30 Thu 18:10]
-The options for configuring Rammel are the same as configuring noweb version 3.
-
-#+begin_src scheme :tangle src/options.scm
-  (use-modules (ice-9 format) (srfi srfi-1) (rnrs base))
-
-  (define options (make-hash-table))
-
-  (define (option sym default description validator category)
-    (hash-set! options sym
-               (list (cons 'value #nil)
-                     (cons 'default default)
-                     (cons 'description description)
-                     (cons 'validator validator)
-                     (cons 'category category)))
-    default)
-
-  (define (option-get sym)
-    (let* ((entry (hash-ref options sym)))
-      (if entry
-          (if (nil? (assq-ref entry 'value))
-              (assq-ref entry 'default)
-              (assq-ref entry 'value))
-          #f)))
-
-  (define (option-set sym val)
-    (let ((entry (hash-ref options sym)))
-      (when entry
-        (hash-set! options sym
-                   (assq-set! entry 'value val))
-        val)))
-
-  (define (option-validate sym)
-    (let* ((entry (hash-ref options sym))
-           (val (and entry (assq-ref entry 'value)))
-           (validator (and entry (assq-ref entry 'validator))))
-      (if (not validator)
-          #t
-          (let ((check (lambda (v)
-                         (cond ((procedure? validator) (validator v))
-                               (else #f)))))
-            (if (list? val)
-                (every check val)
-                (check val))))))
-
-  (define (option-print)
-    (hash-for-each
-     (lambda (sym entry)
-       (format #t "~a (~a): ~a = ~s~%" sym (assq-ref entry 'category)
-               (assq-ref entry 'description) (assq-ref entry 'value)))
-     options))
-
-  ;; Example definitions (fixed/updated from provided)
-  (option 'PIPE "fork"
-          "How to run pipelines of programs and utilities."
-          (lambda (v) (member v '("fork" "spawn")))
-          "System Calls")
-
-  (option 'BIN "/usr/bin"
-          "The installation location for the 'no' command"
-          (lambda (v) (and (string? v) (file-exists? v)))
-          "Paths")
-
-  (option 'LIBEXEC "/usr/libexec/rammel"
-          "The installation location of Rammel scripts and configuration files"
-          (lambda (v) (and (string? v) (file-exists? v)))
-          "Paths")
-
-  (option 'TEXINPUTS "/usr/share/texlive/texmf-local/tex/latex/rammel"
-          "The installation location for LaTeX styles and macros (following the TeX Directory Standard)"
-          (lambda (v) (string? v))
-          "Paths")
-
-  (option 'SHELL "/usr/bin/bash"
-          "The shell to use when calling scripts."
-          (lambda (v) (and (string? v) (file-exists? v)))
-          "Paths")
-
-  (option 'CC "gcc"
-          "The name of an ANSI C compiler."
-          (lambda (v) (and (string? v) (file-exists? v)))
-          "C Compilation")
-
-  (option 'CFLAGS "-ansi -pedantic -std=c11 -c"
-          "General C compilation flags used througout the entire C build process."
-          #nil
-          "C Compilation")
-
-  (option 'XCFLAGS #nil
-          "Flags used in addition to ``CFLAGS'' when building the ``no'' binary. If your system provides tempnam(3), noweb's indexing will be more efficient if you add -DTEMPNAM to XCFLAGS, which is given to the C compiler."
-          #nil
-          "C Compilation")
-
-  (option 'LD "gcc"
-          "A C linker-loader."
-          #nil
-          "C Compilation")
-
-  (option 'LDFLAGS "-lc"
-          "Compilation flags for the linking stage, pased to ``ld''."
-          #nil
-          "C Compilation")
-
-  (option 'LIBPROLOGUE #nil
-          "Options and flags passed to the linker-loader prior to listing libraries; i.e. anything you need to write after listing libraries. It is used like the following: ld $LFLAGS $NOOBJS $LIBPROLOGUE ../cii/libcii ../lua/liblua.so ../lua/liblualibs.so $LIBEPILOGUE."
-          #nil
-          "C Compilation")
-
-  (option 'LIBEPILOGUE #nil
-          "Options and flags passed to linker-loader after listing libraries; i.e. anything you need to write after listing libraries. It is used like the following: ld $LFLAGS $NOOBJS $LIBPROLOGUE ../cii/libcii ../lua/liblua.so ../lua/liblualibs.so $LIBEPILOGUE."
-          #nil
-          "C Compilation")
-
-  (option 'AR "ar"
-          "What to call to build an object-code library. An archiver or bundler tool used to produce object-code libraries from multiple object files; whatever ``ar'' is on your system, or whatever produces object-code libraries like .so or .dll."
-          #nil
-          "C Compilation")
-
-  (option 'RANLIB "ranlib"
-          "How to index an object-code library."
-          ;; ranlib is a program for indexing object-code libraries; echo is a fallback.
-          (lambda (v) (member v '("ranlib" "echo")))
-          "Utilities")
-
-  (option 'CIIMAXALIGN #nil
-          "The alignment (in bytes) of pointers returned by malloc; see cii/install.html for more"
-          #nil
-          "Utilities")
-
-  (option 'XINCLUDES #nil
-          #nil
-          #nil
-          "Utilities")
-
-  (option 'POPEN #nil
-          #nil
-          #nil
-          "Utilities")
-
-  (option 'POSIX #nil
-          #nil
-          #nil
-          "Utilities")
-
-  (option 'STRERROR #nil
-          #nil
-          #nil
-          "Utilities")
-
-  ;; Conditionally assign the value of the option to a variable, setting it only
-  ;; if it's not already defined in make.
-  (hash-for-each
-   (lambda (opt entry)
-     (gmk-eval (format #f "~a ?= ~a" (symbol->string opt)
-                       (if (nil? (option-get opt))
-                           ""
-                           (option-get opt))))
-     (let* ((option-name (symbol->string opt))
-            (origin (gmk-expand (format #f "$(origin ~a)" option-name))))
-       (gmk-eval (format #f "$(info \"The origin of ~a is: ~a.\")" option-name origin))
-       (when (string=? "undefined" origin)
-         (gmk-eval (format #f "$(error \"~a was not defined properly by Guile!\")"
-                           option-name)))))
-   options)
-
-  (when (string=? (gmk-expand "$(MAKECMDGOALS)") "help")
-    (option-print))
-#+end_src
-
 ** C
 This is the most important Makefile, other than the top-level makefile, as this
 consumes the output of all the others: CII; an embeddable Lua; scripts written
@@ -553,11 +384,11 @@ in Lua.
   	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
   	pdflatex -output-directory=$(OUTPUT) doc.tex
 
-  $(OUTPUT)/nwmtime$(E): $(NWMTIMEOBJS)
-  	$(LD) $(LFLAGS)$@ $(NWMTIMEOBJS)
+  $(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
+  	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
 
-  $(OUTPUT)/no$(E): $(NOOBJS) $(BUILD_EXEC)/cii/memchk.o $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so
-  	$(LD) $(LFLAGS)$@ $(NOOBJS) $(LIBPROLOG) $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so $(LIBEPILOG)
+  $(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+  	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
 
   touch: $(SRCS)
   	touch $(SRCS)
@@ -565,27 +396,27 @@ in Lua.
   clean:
   	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
-  clobber:	clean
+  clobber: clean
   	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
   $(OUTPUT)/doc.tex: doc.nw
   	$(CP) doc.nw $@
 
-  $(OUTPUT)/allcode.tex:	$(FILES)
+  $(OUTPUT)/allcode.tex: $(FILES)
   	$(OUTPUT)/no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 
 
 
-  $(OUTPUT)/%.h: %.nw;
-  	$(TANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rheader $(CPIF) $@
+  $(OUTPUT)/%.h: %.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rheader $(CPIF) $@
 
-  $(OUTPUT)/%.c: %.nw;
-  	$(TANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") $(CPIF) $@
+  $(OUTPUT)/%.c: %.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") $(CPIF) $@
 
-  $(OUTPUT)/nwbuffer-lua.c: nwbuffer.nw;
-  	$(TANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rnwbuffer-lua.c $(CPIF) $@
+  $(OUTPUT)/nwbuffer-lua.c: nwbuffer.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rnwbuffer-lua.c $(CPIF) $@
 
 
 
@@ -730,12 +561,10 @@ This was converted from Lua to Guile Scheme by Grok.
 Below is the original =src/lua/Makefile=.
 
 #+begin_src makefile :tangle src/lua/Makefile
-  $(guile (load "tangle.scm"))
-
-  CONFIG="$(guile (path-expand '(pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws) output))"
-  FILTERS="$(guile (path-expand '(cat.nws stripconds.nws xchunks.nws lines.nws) output))"
-  STAGES="$(guile (path-expand '(totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws) output)) $(FILTERS)"
-  SCRIPTS="$(guile (path-expand '(tangle weave) output))"
+  CONFIG = pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws
+  FILTERS = cat.nws stripconds.nws xchunks.nws lines.nws
+  STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws
+  SCRIPTS = tangle.nws weave.nws
 
   all: $(CONFIG) $(STAGES) $(SCRIPTS)
 
@@ -750,29 +579,20 @@ Below is the original =src/lua/Makefile=.
   clean:
 
   clobber: clean
-  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS) 2>$(NULL)
+  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
 
   install: $(SCRIPTS) $(CONFIG) $(STAGES)
-  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIBEXEC)/$$i;                 done
-  	for i in $(SCRIPTS);          do cp                         $$i   $(LIBEXEC)/`basename $$i .nws`; done
+  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(LIBEXEC)/$$i; done
+  	for i in $(SCRIPTS);          do cp                         $$i   $(LIBEXEC)/$$i; done
 
-  # Produce rules
-  "$(guile (map (lambda (w) (path-expand (cpif (notangle tangle-options w) w) output)) '(list.nw set.nw totex.nw tohtml.nw noidx.nw elide.nw unmarkup.nw cat.nw stripconds.nw xchunks.nw lines.nw tangle.nw weave.nw)))"
+  %.c: %.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -L"#line %L \"${$*}.nw\"%N" > $@
 
+  %.h: %.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -Rheader -L"#line %L \"${$*}.nw\"%N" > $@
 
-  TANGLE=notangle
-  $(OUTPUT)/%.c: %.nw
-  	$(TANGLE) $(TANGLEOPTS) -L"#line %L \"${$*}.nw\"%N" > $@
-  $(OUTPUT)/%.h: %.nw
-  	$(TANGLE) $(TANGLEOPTS) -Rheader -L"#line %L \"${$*}.nw\"%N" > $@
-  $(OUTPUT)/pipes.cfg:
-  	$(TANGLE) $(TANGLEOPTS) -Rpipes.cfg config.nw > $@
-  $(OUTPUT)/sys.cfg:
-  	$(TANGLE) $(TANGLEOPTS) -Rsys.cfg config.nw > $@
-  $(OUTPUT)/pipes.cfg:
-  	$(TANGLE) $(TANGLEOPTS) -Rnoweb.cfg config.nw > $@
-  $(OUTPUT)/pipes.cfg:
-  	$(TANGLE) $(TANGLEOPTS) -Rutil.cfg config.nw > $@
+  %.nws %.cfg: lua.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -R$(@F) > $@
 
   noidx.tex: noidx.nw
   	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
@@ -991,45 +811,46 @@ This makefile is based upon the upstream.
   CFLAGS = $(CONFIG) -Wall -Wmissing-prototypes -Wshadow -ansi -O2 -pedantic
 
   AR = ar
-  ARFLAGS	= rvc
+  ARFLAGS = rsc
 
   # Aplication modules
   LUAOBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,parser lex opcode hash table inout tree fallback luamem func undump))
 
-  LIBOBJS = iolib.o mathlib.o strlib.o
+  LIBOBJS = $(addprefix $(OUTPUT)/,iolib.o mathlib.o strlib.o)
 
-  lua : lua.o liblua.a liblualib.a
+  $(OUTPUT)/lua : $(OUTPUT)/lua.o $(OUTPUT)/liblua.so $(OUTPUT)/liblualib.so
   	$(CC) $(CFLAGS) -o $@ lua.o -L. -llua -llualib -lm
 
-  liblua.a : $(LUAOBJS)
-  	$(AR) $(ARFLAGS) $@  $?
-  	ranlib $@
+  $(OUTPUT)/liblua.so : $(LUAOBJS)
+  	$(AR) $(ARFLAGS) $@ $?
 
-  liblualib.a : $(LIBOBJS)
-  	$(AR) $(ARFLAGS) $@  $?
-  	ranlib $@
+  $(OUTPUT)/liblualib.so : $(LIBOBJS)
+  	$(AR) $(ARFLAGS) $@ $?
 
-  liblua.so.1.0 : lua.o
-  	ld -o liblua.so.1.0 $(LUAOBJS)
+  $(OUTPUT)/liblua.so.1.0 : lua.o
+  	$(LD) -o liblua.so.1.0 $(LDFLAGS) $(LUAOBJS)
 
-  y.tab.c y.tab.h  : lua.stx
-  	yacc -d lua.stx
+  $(OUTPUT)/y.tab.c $(OUTPUT)/y.tab.h  : lua.stx
+  	yacc -d lua.stx -o $@
 
-  parser.c : y.tab.c
-  	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' y.tab.c > parser.c
+  $(OUTPUT)/parser.c : $(OUTPUT)/y.tab.c
+  	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' $(OUTPUT)/y.tab.c > $(OUTPUT)/parser.c
 
-  parser.h : y.tab.h
-  	sed -e 's/yy/luaY_/g' y.tab.h > parser.h
+  $(OUTPUT)/parser.h : $(OUTPUT)/y.tab.h
+  	sed -e 's/yy/luaY_/g' $(OUTPUT)/y.tab.h > $(OUTPUT)/parser.h
 
   clear	:
   	rm -f *.o
   	rm -f parser.c parser.h y.tab.c y.tab.h
 
-  $(OUTPUT)/parser.o : parser.c parser.h
+  $(OUTPUT)/parser.o : $(OUTPUT)/parser.c $(OUTPUT)/parser.h
   	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
 
   $(OUTPUT)/%.o : %.c
   	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
+
+  $(OUTPUT)/mathlib.o : mathlib.c lualib.h lua.h
+  	$(CC) -c $(CFLAGS) $(LDFLAGS) -lm -I. -o $@ $<
 
   # fallback.o : fallback.c luamem.h fallback.h lua.h opcode.h types.h tree.h func.h table.h
   # func.o : func.c luadebug.h lua.h table.h tree.h types.h opcode.h func.h luamem.h
@@ -1038,7 +859,7 @@ This makefile is based upon the upstream.
   # iolib.o : iolib.c lua.h luadebug.h lualib.h
   # lex.o : lex.c luamem.h tree.h types.h table.h opcode.h lua.h func.h lex.h inout.h luadebug.h parser.h
   # lua.o : lua.c lua.h lualib.h
-  # mathlib.o : mathlib.c lualib.h lua.h
+  # $(OUTPUT)/mathlib.o : mathlib.c lualib.h lua.h
   # luamem.o : luamem.c luamem.h lua.h
   # opcode.o : opcode.c luadebug.h lua.h luamem.h opcode.h types.h tree.h func.h hash.h inout.h table.h fallback.h undump.h
   # parser.o : parser.c luadebug.h lua.h luamem.h lex.h opcode.h types.h tree.h func.h hash.h inout.h table.h
@@ -1047,5 +868,8 @@ This makefile is based upon the upstream.
   # tree.o : tree.c luamem.h lua.h tree.h types.h lex.h hash.h opcode.h func.h table.h
   # undump.o : undump.c opcode.h lua.h types.h tree.h func.h luamem.h table.h undump.h
 #+end_src
+
+The mathematics library for Lua 2.5.1 is not compiling properly; there are missing symbols.
+
 *** TODO 3.2.2
 *** TODO 5.5.0

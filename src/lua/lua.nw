@@ -1809,7 +1809,7 @@ end
 
 # Tangle
 
-<<tangle>>=
+<<tangle.nws>>=
 -- Copyright 1991 by Norman Ramsey.  All rights reserved.
 -- See file COPYRIGHT for more information.
 $debug
@@ -3088,7 +3088,7 @@ P = MPipe
 
 I'm assuming we defined a [[concat]] fallback that works on lists.
 
-<<weave>>=
+<<weave.nws>>=
 <<copyright notice>>
 <<renaming of builtins>>
 <<initialization>>

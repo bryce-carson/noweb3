@@ -9,45 +9,46 @@ CC = gcc
 CFLAGS = $(CONFIG) -Wall -Wmissing-prototypes -Wshadow -ansi -O2 -pedantic
 
 AR = ar
-ARFLAGS	= rvc
+ARFLAGS = rsc
 
 # Aplication modules
 LUAOBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,parser lex opcode hash table inout tree fallback luamem func undump))
 
-LIBOBJS = iolib.o mathlib.o strlib.o
+LIBOBJS = $(addprefix $(OUTPUT)/,iolib.o mathlib.o strlib.o)
 
-lua : lua.o liblua.a liblualib.a
+$(OUTPUT)/lua : $(OUTPUT)/lua.o $(OUTPUT)/liblua.so $(OUTPUT)/liblualib.so
 	$(CC) $(CFLAGS) -o $@ lua.o -L. -llua -llualib -lm
 
-liblua.a : $(LUAOBJS)
-	$(AR) $(ARFLAGS) $@  $?
-	ranlib $@
+$(OUTPUT)/liblua.so : $(LUAOBJS)
+	$(AR) $(ARFLAGS) $@ $?
 
-liblualib.a : $(LIBOBJS)
-	$(AR) $(ARFLAGS) $@  $?
-	ranlib $@
+$(OUTPUT)/liblualib.so : $(LIBOBJS)
+	$(AR) $(ARFLAGS) $@ $?
 
-liblua.so.1.0 : lua.o
-	ld -o liblua.so.1.0 $(LUAOBJS)
+$(OUTPUT)/liblua.so.1.0 : lua.o
+	$(LD) -o liblua.so.1.0 $(LDFLAGS) $(LUAOBJS)
 
-y.tab.c y.tab.h  : lua.stx
-	yacc -d lua.stx
+$(OUTPUT)/y.tab.c $(OUTPUT)/y.tab.h  : lua.stx
+	yacc -d lua.stx -o $@
 
-parser.c : y.tab.c
-	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' y.tab.c > parser.c
+$(OUTPUT)/parser.c : $(OUTPUT)/y.tab.c
+	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' $(OUTPUT)/y.tab.c > $(OUTPUT)/parser.c
 
-parser.h : y.tab.h
-	sed -e 's/yy/luaY_/g' y.tab.h > parser.h
+$(OUTPUT)/parser.h : $(OUTPUT)/y.tab.h
+	sed -e 's/yy/luaY_/g' $(OUTPUT)/y.tab.h > $(OUTPUT)/parser.h
 
 clear	:
 	rm -f *.o
 	rm -f parser.c parser.h y.tab.c y.tab.h
 
-$(OUTPUT)/parser.o : parser.c parser.h
+$(OUTPUT)/parser.o : $(OUTPUT)/parser.c $(OUTPUT)/parser.h
 	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
 
 $(OUTPUT)/%.o : %.c
 	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
+
+$(OUTPUT)/mathlib.o : mathlib.c lualib.h lua.h
+	$(CC) -c $(CFLAGS) $(LDFLAGS) -lm -I. -o $@ $<
 
 # fallback.o : fallback.c luamem.h fallback.h lua.h opcode.h types.h tree.h func.h table.h
 # func.o : func.c luadebug.h lua.h table.h tree.h types.h opcode.h func.h luamem.h
@@ -56,7 +57,7 @@ $(OUTPUT)/%.o : %.c
 # iolib.o : iolib.c lua.h luadebug.h lualib.h
 # lex.o : lex.c luamem.h tree.h types.h table.h opcode.h lua.h func.h lex.h inout.h luadebug.h parser.h
 # lua.o : lua.c lua.h lualib.h
-# mathlib.o : mathlib.c lualib.h lua.h
+# $(OUTPUT)/mathlib.o : mathlib.c lualib.h lua.h
 # luamem.o : luamem.c luamem.h lua.h
 # opcode.o : opcode.c luadebug.h lua.h luamem.h opcode.h types.h tree.h func.h hash.h inout.h table.h fallback.h undump.h
 # parser.o : parser.c luadebug.h lua.h luamem.h lex.h opcode.h types.h tree.h func.h hash.h inout.h table.h

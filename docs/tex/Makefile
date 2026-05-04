@@ -1,10 +1,3 @@
-NAME="name of version checked in"
-RCSFILES=support.nw Makefile
-
-# don't edit this file; edit ../nwconfig instead
-
-include ../nwconfig
-
 all: $(OUTPUT)/nwmac.tex $(OUTPUT)/noweb.sty
 
 source: nwmac.tex noweb.sty

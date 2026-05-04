@@ -49,11 +49,11 @@ doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
 	pdflatex -output-directory=$(OUTPUT) doc.tex >$(NUL)
 	pdflatex -output-directory=$(OUTPUT) doc.tex
 
-$(OUTPUT)/nwmtime$(E): $(NWMTIMEOBJS)
-	$(LD) $(LFLAGS)$@ $(NWMTIMEOBJS)
+$(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
+	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
 
-$(OUTPUT)/no$(E): $(NOOBJS) $(BUILD_EXEC)/cii/memchk.o $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so
-	$(LD) $(LFLAGS)$@ $(NOOBJS) $(LIBPROLOG) $(BUILD_EXEC)/cii/libcii.so $(BUILD_EXEC)/lua-2.5.1/liblua.so $(BUILD_EXEC)/lua-2.5.1/liblualib.so $(LIBEPILOG)
+$(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
 
 touch: $(SRCS)
 	touch $(SRCS)
@@ -61,27 +61,27 @@ touch: $(SRCS)
 clean:
 	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
-clobber:	clean
+clobber: clean
 	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
 $(OUTPUT)/doc.tex: doc.nw
 	$(CP) doc.nw $@
 
-$(OUTPUT)/allcode.tex:	$(FILES)
+$(OUTPUT)/allcode.tex: $(FILES)
 	$(OUTPUT)/no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 
 
 
-$(OUTPUT)/%.h: %.nw;
-	$(TANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rheader $(CPIF) $@
+$(OUTPUT)/%.h: %.nw
+	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rheader $(CPIF) $@
 
-$(OUTPUT)/%.c: %.nw;
-	$(TANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") $(CPIF) $@
+$(OUTPUT)/%.c: %.nw
+	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") $(CPIF) $@
 
-$(OUTPUT)/nwbuffer-lua.c: nwbuffer.nw;
-	$(TANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rnwbuffer-lua.c $(CPIF) $@
+$(OUTPUT)/nwbuffer-lua.c: nwbuffer.nw
+	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rnwbuffer-lua.c $(CPIF) $@
 
 
 
