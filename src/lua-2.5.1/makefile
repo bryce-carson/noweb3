@@ -16,14 +16,6 @@ LUAOBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,parser lex opcode hash table ino
 
 LIBOBJS = $(addprefix $(OUTPUT)/,iolib.o mathlib.o strlib.o)
 
-.PHONY: clear all
-
-all : $(addprefix $(OUTPUT)/,lua liblua.so liblualib.so liblua.so.1.0)
-
-clear	:
-	rm -f *.o
-	rm -f parser.c parser.h y.tab.c y.tab.h
-
 $(OUTPUT)/lua : $(OUTPUT)/lua.o $(OUTPUT)/liblua.so $(OUTPUT)/liblualib.so
 	$(CC) $(CFLAGS) -o $@ lua.o -L. -llua -llualib -lm
 
@@ -44,6 +36,10 @@ $(OUTPUT)/parser.c : $(OUTPUT)/y.tab.c
 
 $(OUTPUT)/parser.h : $(OUTPUT)/y.tab.h
 	sed -e 's/yy/luaY_/g' $(OUTPUT)/y.tab.h > $(OUTPUT)/parser.h
+
+clear	:
+	rm -f *.o
+	rm -f parser.c parser.h y.tab.c y.tab.h
 
 $(OUTPUT)/parser.o : $(OUTPUT)/parser.c $(OUTPUT)/parser.h
 	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
