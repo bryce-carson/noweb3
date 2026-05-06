@@ -1,0 +1,329 @@
+\section{Configuration files}
+<<noweb.cfg>>=
+$debug
+LIB="|LIBDIR|"
+do_nwfile("pipes.cfg")
+do_nwfile("sys.cfg")
+do_nwfile("util.cfg")
+do_nwfile("list.nws")
+do_nwfile("lines.nws")
+do_nwfile("set.nws")
+do_nwfile("totex.nws")
+do_nwfile("tohtml.nws")
+do_nwfile("noidx.nws")
+do_nwfile("elide.nws")
+do_nwfile("unmarkup.nws")
+do_nwfile("cat.nws")
+do_nwfile("stripconds.nws")
+do_nwfile("xchunks.nws")
+<<set fallback for connecting pipelines>>
+@ 
+<<util.cfg>>=
+$debug
+function libFile(name)
+  return MD.extendPath(LIB, name)
+end
+
+function errormsg(a, b, c, d, e, f, g, h)
+  local i, j, out
+  out = writetox(stderr)
+  local l = {a, b, c, d, e, f, g, h}
+  j = 1; while l[j] do
+    if type(l[j]) == "string" or type(l[j]) == "number" then write(l[j])
+    elseif type(l[j]) == "table" then i = 1; while l[j][i] do errormsg(l[j][i]); i = i+1 end
+    else writeto(out); error("non-string non-table to errormsg")
+    end
+  j = j+1; end
+  write("\n")
+  writetox(out)
+end
+
+function matchpattern(str, pat)
+  strwork = str
+  patwork = pat
+  while strlen(patwork) > 0 and strlen(strwork) > 0 do
+    if strsub(patwork, 1, 1) == "\\" then
+      patwork = strsub(patwork, 2)
+      if strsub(strwork, 1, 1) ~= strsub(patwork, 1, 1) then
+        return nil
+      end
+    elseif strsub(patwork, 1, 1) == "[" then
+      if strlen(patwork) < 5 then
+        return nil
+      end
+      if ascii(strwork) < ascii(patwork, 2) then
+        return nil
+      end
+      if strsub(patwork, 3, 3) ~= "-" then
+        return nil
+      end
+      if ascii(strwork) > ascii(patwork, 4) then
+        return nil
+      end
+      if strsub(patwork, 5, 5) ~= "]" then
+        return nil
+      end
+      patwork = strsub(patwork, 5)
+    elseif strsub(patwork, 1, 1) == '?' then
+      -- do nothing
+    elseif strsub(patwork, 1, 1) == "*" then
+      if patwork == "*" then
+        return (not nil)
+      end
+      while strlen(strwork) > 0 do
+        if matchpattern(strsub(strwork, 2), strsub(patwork, 2)) then
+          return (not nil)
+        end
+        strwork = strsub(strwork, 2)
+      end
+    else
+      if strsub(strwork, 1, 1) ~= strsub(patwork, 1, 1) then
+        return nil
+      end
+    end
+    strwork = strsub(strwork, 2)
+    patwork = strsub(patwork, 2)
+  end
+  if strlen(strwork) > 0 then
+    return nil
+  end
+  if strlen(patwork) > 0 then
+    return nil
+  end
+  return (not nil)
+end
+
+<<hackers: entries for Lua functions>>=
+errormsg&
+Takes up to 8~arguments and writes them to standard error.
+Arguments may be strings, numbers, or lists.\\
+<<util.cfg>>=
+function noweb_error(a, b, c, d, e, f, g, h, i)
+  error(List.flatten {a, b, c, d, e, f, g, h, i})
+end
+<<hackers: entries for Lua functions>>=
+noweb\_error&
+Halts \texttt{noweb} with an error message consisting of up to
+9~arguments.\\ 
+@ 
+Debug by tracing
+<<util.cfg>>=
+Config = Config or { } 
+
+Config.readers = { }
+Config.nextreader = 1
+
+function Config.reader(r)
+  if not Config.readers[r] then 
+    Config.readers[r] = Config.nextreader
+    Config.nextreader = Config.nextreader + 1
+  end
+  return Config.readers[r]
+end
+
+Config.read = NWB.read
+function Config.tread (r) 
+  local k, a
+  k, a = Config.read(r)
+  errormsg("Read key ", image(k), " arg ", image(a), " from reader ", Config.reader(r))
+  return k, a
+end
+
+Config.put = NWB.put
+function Config.tput (r, k, a) 
+  errormsg("Put key ", image(k), " arg ", image(a), " into reader ", Config.reader(r))
+  return Config.put(r, k, a)
+end
+
+function pipetrace(x)
+  if x then
+    NWB.read = Config.tread
+    NWB.put  = Config.tput
+  else
+    NWB.read = Config.read
+    NWB.put  = Config.put
+  end
+end
+<<hackers: entries for Lua functions>>=
+pipetrace&
+If given a non-null argument, starts tracing every call to
+\texttt{NWB.read} and \texttt{NWB.put}.
+Useful for debugging pipeline problems.
+A null argument turns off tracing.\\
+@ 
+<<pipes.cfg>>=
+$debug
+function XPipe.stage(f, arg)
+  if type(f) == "function" then
+    local n = funname(f) .. '(' .. image(arg) .. ')'
+    return XPipe.dostage(f, arg, n)
+  else
+    return XPipe.dostage(f, arg)
+  end
+end
+XPipe.filter = XPipe.stage
+XPipe.source = XPipe.stage
+XPipe.sink   = XPipe.stage
+@ 
+<<sys.cfg>>=
+$debug
+if not Unix then Unix = { } end
+if not Win then Win = { } end
+
+function Unix.stringFilter(s)
+  return MPipe.filter("sh", { "-c", s })
+end
+function Win.stringFilter(s)
+  return MPipe.filter(System.getenv("ComSpec"), { "/c", s })
+end
+<<hackers: entries for Lua functions>>=
+Unix.stringFilter&
+Win.stringFilter&
+Takes one argument, a shell command,
+and returns a filter to execute that argument.\\
+<<sys.cfg>>=
+function Unix.extendPath(dir, file)
+  return dir .. "/" .. file
+end
+function Win.extendPath(dir, file)
+  return dir .. "\\" .. file
+end
+
+function Unix.isExecutable(file)
+  return XPipe.run(XPipe.stage("test", {"-x", file})) == 0
+end
+function Win.isExecutable(file)
+  -- no good test, just assume it is
+  return true
+end
+
+
+if PLATFORM == "unix" then MD = Unix
+elseif PLATFORM == "win" then MD = Win
+else error("Unknown target platform ", PLATFORM)
+end
+@ 
+<<util.cfg>>=
+$debug
+function image(x)
+  local i, n, v, pfx, s, ty, tag
+  if type(x) == "string" then return format("%q", x)
+  elseif type(x) == "number" then return format("%.0f", x)
+  elseif type(x) == "function" or type(x) == "cfunction" then
+       i = funname(x)
+       if i then return "<function " .. i .. ">"
+       else return tostring(x)
+       end
+  elseif type(x) == "table" then
+        if List.is(x) then <<return image of list [[x]]>>
+        else               <<return image of table [[x]]>>
+        end
+  elseif type(x) == "nil" then return 'nil'
+  elseif type(x) == "userdata" then ty, tag = type(x)
+                  if tag == NWKEY then return funname(x)
+                  else return tostring(x)
+                  end
+  else return tostring(x)
+  end
+end
+<<return image of table [[x]]>>=
+s = "{"; pfx = " "
+i = nil
+n = 0
+repeat
+  i, v = next(x, i)
+  if (i ~= nil) then
+    s = s .. pfx 
+    if type(i) == "string" and strfind(i, "^[a-zA-Z][a-zA-Z_0-9]*$") then
+      s = s .. i
+    else
+      s = s .. "[" .. image(i) .. "]"
+    end
+    s = s .. " = " .. image(v)
+  end
+  pfx = ", "
+until (i == nil)
+return s .. " }"
+<<return image of list [[x]]>>=
+s = "{"; pfx = " "
+i = 1
+while x[i] do
+  s = s .. pfx .. image(x[i])
+  pfx = ", "
+  i = i + 1
+end
+return s .. " }"
+@ 
+<<hackers: entries for Lua functions>>=
+image&
+Attempts to convert any Lua value to string form.\\
+show&
+Writes images of up to 6~arguments on the default Lua output.\\
+@
+<<util.cfg>>=
+function show(x, a, b, c, d, e)
+  local i, n, v, pfx
+  write(image(x))
+  if a then show(a, b, c, d, e) end
+end
+@ 
+We try to find a two-element name for a function.
+If that fails we look at top level.
+If that fails, we give up.
+<<util.cfg>>=
+function funname(x)
+  local i, v, ii, vv
+  -- search global tables for x
+  i, v = nextvar(nil)
+  while i ~= nil do
+    if type(v) == "table" then
+      ii, vv = next(v, nil)
+      while ii ~= nil do
+        if vv == x then
+          return i .. "." .. ii
+        else
+          ii, vv = next(v, ii)
+        end
+      end
+    end
+    i, v = nextvar(i)
+  end
+  -- search globals for x
+  i, v = nextvar(nil)
+  while i ~= nil do
+    if v == x then
+      return i
+    else
+      i, v = nextvar(i)
+    end
+  end
+  return nil
+end
+<<hackers: entries for Lua functions>>=
+funname&
+Attempts to return a name by which a Lua value can be known.
+Searches top-level variables, then top-level tables.
+Typically used to find names of functions.\\
+@
+<<set fallback for connecting pipelines>>=
+function Config.filterfun(x)
+  local ty, tag = type(x)
+  if ty ~= "userdata" then return nil end
+  if tag == MSOURCE or tag == MFILTER or tag == MSINK then return MPipe.connect
+  elseif tag == XPIPE then return XPipe.connect
+  else return nil
+  end    
+end
+
+function Config.pipeconcatfallback(x, y)
+  if     not x then return y
+  elseif not y then return x
+  end
+  local cat = Config.filterfun(x)
+  if cat and cat == Config.filterfun(y) then
+    return cat(x, y)
+  end
+  return Config.prevpipeconcatfallback(x, y)
+end
+
+Config.prevpipeconcatfallback = setfallback("concat", Config.pipeconcatfallback)

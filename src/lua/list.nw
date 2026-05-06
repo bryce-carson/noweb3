@@ -1,0 +1,180 @@
+\section{Lists}
+<<hackers: entries for list functions>>=
+List.length&Number of elements in a list.\\
+<<*>>=
+List = {}
+
+function List.length(list)
+  if type(list) ~= "table" then
+    errormsg("Length of non-list (", type(list), ") ", image(list))
+  end
+  if list[1] == nil then
+    return 0
+  else
+    local lo, hi = 1, 2
+    while list[hi] do lo, hi = hi, 2*hi end
+    assert(list[lo] ~= nil)
+    -- invariant: list[lo] is not nil, list[hi] is nil
+    while hi - lo > 1 do
+      local mid = floor((lo+hi)/2)
+      if list[mid] == nil then
+        hi = mid
+      else
+        lo = mid
+      end
+    end
+    return lo
+  end
+end
+<<*>>=
+function List.slow_length(list)
+  local i, n, v
+  i = nil
+  n = 0
+  if type(list) ~= "table" then
+    errormsg("Length of non-list (", type(list), ") ", image(list))
+  end
+  repeat
+    i, v = next(list, i)
+    if (i ~= nil) then
+      n = n + 1
+    end
+  until (i == nil)
+  return n
+end
+@ 
+<<hackers: entries for list functions>>=
+List.is&Returns non-nil if the argument is a list.\\
+<<*>>=
+function List.is(list)
+  if type(list) ~= "table" then return nil end
+  local i = 1
+  while list[i] do i = i + 1 end
+  i = i - 1
+  return i == List.length(list)
+end
+<<hackers: entries for list functions>>=
+List.get&
+Removes and returns the first element of a list.
+Side-effects (modifies) the list.\\
+<<*>>=
+function List.get(list)
+  local x, n, i
+  x = list[1]
+  n = List.length(list)
+  i = 2
+  while (i <= n) do
+    list[i-1] = list[i]
+    i = i + 1
+  end
+  list[n] = nil
+  return x
+end
+<<hackers: entries for list functions>>=
+List.put&
+Takes two arguments, a list and an item, 
+and appends the item to the end of the list.\\
+<<*>>=
+function List.put(list, item)
+  list[List.length(list) + 1] = item
+end
+@ 
+<<hackers: entries for list functions>>=
+List.flatten&
+Takes the values in a list, converts them to strings with
+\texttt{tostring}, and concatenates them.\\
+<<*>>=
+function List.flatten(l)
+  local i = 1
+  s = ""
+  while l[i] do s = s .. tostring(l[i]) i = i + 1 end
+  return s
+end
+@ 
+<<hackers: entries for list functions>>=
+List.concat&
+Concatenates two lists, returning the new list as a result.\\
+<<*>>=
+function List.concat(l1, l2)
+  local l, i, n, m
+  l = {}
+  i = 1
+  n = List.length(l1)
+  while (i <= n) do
+    l[i] = l1[i]
+    i = i + 1
+  end
+  m = List.length(l2)
+  i = 1
+  while (i <= m) do
+    l[i+n] = l2[i]
+    i = i + 1
+  end
+  return l
+end
+
+@ 
+<<hackers: entries for list functions>>=
+List.new&
+Takes a table literal and returns a list, or 
+given no argument, returns a fresh, empty list.
+Recommended in case \texttt{noweb} moves to a more efficient
+implementation of lists.\\
+<<*>>=
+function List.new(tbl)
+  return tbl or { }
+end
+@ 
+<<hackers: entries for list functions>>=
+List.tostring&
+Concatenates list elements as strings.
+Takes a list and a second argument, the ``separator.''
+Separator defaults to a space.\\
+<<*>>=
+-- concatenate list elements as strings
+function List.tostring(l, sep)
+  local s, i, n
+  n = List.length(l)
+  if n == 0 then
+    return ""
+  else
+    if not sep then sep = " " end
+    i = 1
+    s = tostring(l[1])
+    while i < n do
+      i = i + 1
+      s = s .. sep .. tostring(l[i])
+    end
+    return s
+  end
+end
+@ 
+<<hackers: entries for list functions>>=
+List.fromstring&
+Takes a string, splits it on white space, and makes a list of the results.\\
+<<*>>=
+-- concatenate list elements as strings
+function List.fromstring(s)
+  local l = List.new()
+  local i, j = strfind(s, "%s%s*")
+  while i do
+    if i > 1 then List.put(l, strsub(s, 1, i-1)) end
+    s = strsub(s, j+1)
+    i, j = strfind(s, "%s%s*")
+  end
+  if strlen(s) > 0 then List.put(l, s) end
+  return l
+end
+@ be generous here
+<<*>>=
+function List.concatfallback(x, y)
+  if type(x) .. "," .. type(y) == "table,table" then return List.concat(x, y)
+  elseif type(x) .. "," .. type(y) == "table,nil" then return x
+  elseif type(x) .. "," .. type(y) == "nil,table" then return y
+  elseif type(x) .. "," .. type(y) == "table,string" then return List.concat(x, {y})
+  elseif type(x) .. "," .. type(y) == "string,table" then return List.concat({x}, y)
+  else return List.prevconcatfallback(x, y)
+  end
+end
+
+List.prevconcatfallback = setfallback("concat", List.concatfallback)

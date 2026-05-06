@@ -1,0 +1,74 @@
+
+<<*>>=
+-- Copyright 1991 by Norman Ramsey.  All rights reserved.
+-- See file COPYRIGHT for more information.
+$debug
+markup = Stages.markup; nt = Stages.nt
+opt = List.new {}
+arg = List.new {}
+markopt = List.new {}
+filters = List.new {}
+verbose = nil
+
+while List.length(argv) > 0 do
+  a = List.get(argv)
+  if a == "-e" then dostring(List.get(argv))
+  elseif a == "-internal" then markup = Stages.markup; nt = Stages.nt
+  elseif a == "-external" then markup = libFile("markup"); nt = libFile("nt")
+  elseif a == "-v" then verbose = 1
+  elseif a == "-ml" or a == "-m3" or a == "-awk" or a == "-icn" or a == "-icon" or
+    a == "-pascal" or a == "-c" or a == "-c++" or a == "-f77" or a =="-f90" or
+    a == "-tex" then -- deliberately ignore nountangle args
+  elseif a == "-t" then -- this is the default
+  elseif matchpattern(a, "-t*") then   -- copy tabs at markup, use width given in notangle
+	      List.put(markopt, "-t")
+      	      List.put(opt, a)
+  elseif a == "-filter" then List.put(filters, MD.stringFilter(List.get(argv)))
+  elseif a == "-ifilter" then
+--  if verbose then 
+--  errormsg("FILTER: ", 
+--  "if 1 then local f, arg = " .. argv[1] .. 
+--                 "; List.put(filters, MPipe.filter(f, arg)) end")
+--  end
+      local stagearg = List.get(argv)
+      dostring("if 1 then local f, arg = " .. stagearg .. 
+               "; if not f then error('no tangle: Stage ' .. " ..
+                    format('%q', stagearg) .. 
+                    " .. ' does not exist for -ifilter') end" ..
+               "; List.put(filters, MPipe.filter(f, arg)) end")
+  elseif a == "-markup" then markup = List.get(argv)
+  elseif matchpattern(a, "-w[0-9]") or matchpattern(a, "-w[0-9][0-9]*") then  -- ignore arg meant for nountangle
+  elseif matchpattern(a, "-L*") then List.put(markopt, "-t"); List.put(opt, "-t"); List.put(opt, a)
+  elseif a == "-"   then List.put(arg, a)
+  elseif a == "-cpif" or a == "-cp" then List.put(opt, a); List.put(opt, List.get(argv))
+  elseif matchpattern(a, "-*") then List.put(opt, a)
+  elseif matchpattern(a, "*") then List.put(arg, a)
+  else error("This can't happen! Arg did not match *: " .. a)
+  end
+end
+
+P = MPipe
+
+if System.getenv("PATH") then
+  System.putenv("PATH=" .. System.getenv("PATH") .. ":" .. LIB)
+end
+
+-- write("opt has length ", List.length(opt), "\n")
+-- write("markopt has length ", List.length(markopt), "\n")
+-- write("arg has length ", List.length(arg), "\n")
+-- write("opt = ", image(opt), '\n')
+-- write("arg = ", image(arg), '\n')
+-- write("markopt = ", image(markopt), '\n')
+
+p = P.source(markup, markopt .. arg)
+while List.length(filters) > 0 do 
+  p = p .. List.get(filters)
+end
+p = p .. P.sink(nt, opt)
+if verbose then 
+  local out = writetox(stderr)
+  P.print(p)
+  write("\n")
+  writeto(out)
+end
+exit(P.run(p))

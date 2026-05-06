@@ -564,128 +564,77 @@ This was converted from Lua to Guile Scheme by Grok.
 
 ** DONE Lua
 CLOSED: [2026-05-03 Sun 20:18]
+#+begin_src makefile :tangle src/lua/Makefile :noweb no-export
+  CONFIG = $(addprefix $(OUTPUT)/,pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws)
+  FILTERS = $(addprefix $(OUTPUT)/,cat.nws stripconds.nws xchunks.nws lines.nws)
+  STAGES = $(addprefix $(OUTPUT)/,totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws) $(FILTERS)
+  SCRIPTS = $(addprefix $(OUTPUT)/,tangle weave)
 
-#+begin_src makefile :tangle src/lua/Makefile
-  CONFIG = pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws
-  FILTERS = cat.nws stripconds.nws xchunks.nws lines.nws
-  STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws $(FILTERS)
-  SCRIPTS = tangle.nws weave.nws
+  .PHONY : all clean clobber install
 
-  all: $(CONFIG) $(STAGES) $(SCRIPTS)
-  	for i in $(CONFIG) $(STAGES); do sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; done
-  	for i in $(SCRIPTS);          do cp                         $$i   $(OUTPUT)/$$i; done
+  all : $(CONFIG) $(STAGES) $(SCRIPTS)
 
+  clean :
+
+  clobber : clean
+  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
+
+  install : $(SCRIPTS) $(CONFIG) $(STAGES)
+  	for i in $(CONFIG) $(STAGES); do                  \
+        sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; \
+    done
+  	for i in $(SCRIPTS); do                       \
+        cp $$i $(OUTPUT)/`basename $$i .nws`;       \
+    done
+
+  $(OUTPUT)/%.cfg : config.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) -R$(@F) $(CPIF) $@
+
+  $(OUTPUT)/%.nws : %.nw
+  	$(NOTANGLE) $< $(TANGLEOPTS) $(CPIF) $@
+
+  $(OUTPUT)/tangle : tangle.nw
+  	$(NOTANGLE) tangle.nw $(TANGLEOPTS) $(CPIF) $@
+
+  $(OUTPUT)/weave : weave.nw
+  	$(NOTANGLE) weave.nw $(TANGLEOPTS) $(CPIF) $@
+
+  $(OUTPUT)/noidx.tex: noidx.nw
+  	which no
+  	no weave -delay -x -filter 'elide hackers:*' noidx.nw > $@
+
+  # <<test and htmltest>>
+#+end_src
+
+*** TODO Test Lua NWS files and test an HTML file of unknown structure and unavailable origin
+Norman Ramsey does not make available the WWW, and the NWS test requires that
+the scripts be tangled to this directory, which they aren't at present.
+
+#+name: test and htmltest
+#+begin_src makefile :noweb yes
+  <<lua-test-nws>>
+
+  <<lua-test-html>>
+#+end_src
+
+Test the script files in the current directory:
+
+#+name: lua-test-nws
+#+begin_src makefile
+  # TODO: requires tangling to the current directory; which I'm not doing right now.
   test: $(CONFIG) $(STAGES) $(SCRIPTS)
   	@echo 'write("Scripts load from .\n")' | NWPATH=. no
   	@echo 'argv = {"-internaldefaults", "-n", "-html", "/dev/null"}; do_nwfile("weave.nws"); write("Null weave OK.\n")' | NWPATH=. no
   	@echo 'argv = {"-internal", "test.nw"}; do_nwfile("tangle.nws"); write("Null tangle OK.\n")' | NWPATH=. no
+#+end_src
 
+Test an HTML file of unknown structure:
+
+#+name: lua-test-html
+#+begin_src makefile
+  # TODO: requires an HTML file of unknown structure.
   htmltest: $(CONFIG) $(STAGES) $(SCRIPTS)
   	@echo 'testfile("/home/nr/www/noweb/index.html")' | NWPATH=. no
-
-  clean:
-
-  clobber: clean
-  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
-
-  %.c: %.nw
-  	$(NOTANGLE) $< $(TANGLEOPTS) -L"#line %L \"${$*}.nw\"%N" > $@
-
-  %.h: %.nw
-  	$(NOTANGLE) $< $(TANGLEOPTS) -Rheader -L"#line %L \"${$*}.nw\"%N" > $@
-
-  %.nws %.cfg: lua.nw
-  	$(NOTANGLE) $< $(TANGLEOPTS) -R$(@F) > $@
-
-  noidx.tex: noidx.nw
-  	noweave -delay -x -filter 'elide hackers:*' noidx.nw > noidx.tex
-#+end_src
-
-The lua sources of Rammel are tangled from a single web, combined from all the
-webs that previously existed. The =all= target would run by default in the
-original makefile.
-
-#+begin_quote
-LIB3 is where Noweb 3 scripts and configuration files go.
-#+end_quote
-
-#+begin_src lua
-  NOTANGLE="more"
-  TANGLEOPTS=" | $(NOCOND) lua2 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt"
-  --[[CPIF is initially the symbol for simple stdout redirection to a file.]]
-  OUTPUT=_OPTIONS["OUTPUT"]
-#+end_src
-
-#+begin_src lua :noweb-ref "tangle noweb lua scripts"
-  local notangle = path.getabsolute("nt", _OPTIONS["libexec"])
-  local notangle_options = ""
-  local cpif = ">"--could be changed to the cpif utility
-  local function tangle(notangle, notangle_options, cpif, target, root) do
-    if root then
-      local cpif_root = string.format("-R%s %s %s", root, cpif, root)
-    elseif
-      local cpif_root = string.format("%s %s", cpif, root)
-    end
-    os.executef("%s lua.nw %s %s", notangle, notangle_options, cpif_root, target)
-  end
-  for target in { "pipes.cfg", "sys.cfg", "noweb.cfg", "util.cfg" } do
-    tangle(notangle, notangle_opts, cpif, target, target)
-  end
-  local scripts = {
-    "list.nws",
-    "set.nws",
-    "totex.nws",
-    "tohtml.nws",
-    "noidx.nws",
-    "elide.nws",
-    "unmarkup.nws",
-    "cat.nws",-- apparently not installed anywhere
-    "stripconds.nws",
-    "xchunks.nws",
-    "lines.nws",
-
-    "tangle",
-    "weave"
-  }
-  for lua_script in scripts do
-    tangle(notangle, notangle_opts, cpif, lua_script)
-  end
-
-  local config = { "pipes.cfg", "sys.cfg", "noweb.cfg", "util.cfg", "list.nws", "set.nws" }
-
-  -- FIXME: The filters cat, stripconds, xchunks, and lines are missing.
-  local configurations_and_stages = {
-    -- Lua+nw, but with a different intention.
-    "pipes.cfg",
-    "sys.cfg",
-    "noweb.cfg",
-    "util.cfg",
-    "list.nws",
-    "set.nws",
-    "totex.nws",
-    "tohtml.nws",
-    "noidx.nws",
-    "elide.nws",
-    "unmarkup.nws"
-  }
-
-  -- Overwrite the tangled nws files with their edited versions. This is
-  -- alternative to calling sed.
-  for configuration_or_stage in configurations_and_stages do
-    local edited = io.output(io.tmpfile())
-    for line in io.lines(configuration_or_stage) do
-      io.write(string.gsub(line, "|LIBDIR|", "$(LIB2)"))
-    end
-    edited:close()
-    os.copyfile(edited, path.getabsolute(i, "build/src/lua/"))
-  end
-#+end_src
-
-#+begin_src lua :noweb-ref "install noweb lua scripts"
-  for f in { script, configuration_or_stage } do
-    os.copyfile(path.getabsolute(f, "build/src/lua/"),
-                path.getabsolute(f, _OPTIONS["LIB3"]))
-  end
 #+end_src
 
 ** Formal Tests
@@ -821,6 +770,14 @@ This makefile is based upon the upstream.
 
   LIBOBJS = $(addprefix $(OUTPUT)/,iolib.o mathlib.o strlib.o)
 
+  .PHONY: clear all
+
+  all : $(addprefix $(OUTPUT)/,lua liblua.so liblualib.so liblua.so.1.0)
+
+  clear	:
+  	rm -f *.o
+  	rm -f parser.c parser.h y.tab.c y.tab.h
+
   $(OUTPUT)/lua : $(OUTPUT)/lua.o $(OUTPUT)/liblua.so $(OUTPUT)/liblualib.so
   	$(CC) $(CFLAGS) -o $@ lua.o -L. -llua -llualib -lm
 
@@ -842,10 +799,6 @@ This makefile is based upon the upstream.
   $(OUTPUT)/parser.h : $(OUTPUT)/y.tab.h
   	sed -e 's/yy/luaY_/g' $(OUTPUT)/y.tab.h > $(OUTPUT)/parser.h
 
-  clear	:
-  	rm -f *.o
-  	rm -f parser.c parser.h y.tab.c y.tab.h
-
   $(OUTPUT)/parser.o : $(OUTPUT)/parser.c $(OUTPUT)/parser.h
   	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
 
@@ -854,22 +807,6 @@ This makefile is based upon the upstream.
 
   $(OUTPUT)/mathlib.o : mathlib.c lualib.h lua.h
   	$(CC) -c $(CFLAGS) $(LDFLAGS) -lm -I. -o $@ $<
-
-  # fallback.o : fallback.c luamem.h fallback.h lua.h opcode.h types.h tree.h func.h table.h
-  # func.o : func.c luadebug.h lua.h table.h tree.h types.h opcode.h func.h luamem.h
-  # hash.o : hash.c luamem.h opcode.h lua.h types.h tree.h func.h hash.h table.h
-  # inout.o : inout.c lex.h opcode.h lua.h types.h tree.h func.h inout.h table.h luamem.h
-  # iolib.o : iolib.c lua.h luadebug.h lualib.h
-  # lex.o : lex.c luamem.h tree.h types.h table.h opcode.h lua.h func.h lex.h inout.h luadebug.h parser.h
-  # lua.o : lua.c lua.h lualib.h
-  # $(OUTPUT)/mathlib.o : mathlib.c lualib.h lua.h
-  # luamem.o : luamem.c luamem.h lua.h
-  # opcode.o : opcode.c luadebug.h lua.h luamem.h opcode.h types.h tree.h func.h hash.h inout.h table.h fallback.h undump.h
-  # parser.o : parser.c luadebug.h lua.h luamem.h lex.h opcode.h types.h tree.h func.h hash.h inout.h table.h
-  # strlib.o : strlib.c lua.h lualib.h
-  # table.o : table.c luamem.h opcode.h lua.h types.h tree.h func.h hash.h table.h inout.h fallback.h luadebug.h
-  # tree.o : tree.c luamem.h lua.h tree.h types.h lex.h hash.h opcode.h func.h table.h
-  # undump.o : undump.c opcode.h lua.h types.h tree.h func.h luamem.h table.h undump.h
 #+end_src
 
 The mathematics library for Lua 2.5.1 is not compiling properly; there are missing symbols.

@@ -1,0 +1,73 @@
+\section{Convert Noweb pipeline back to ASCII form}
+<<*>>=
+-- Copyright 1991,1999 by Norman Ramsey.  All rights reserved.
+-- See file COPYRIGHT for more information.
+
+function Stages.unmarkup (buf, outfile)
+  local oldout, r, key, arg
+  local rcsid = "$Id$"
+  local rcsname = "$Name$"
+  if outfile then
+    oldout = writetox(outfile)
+  end
+  r = NWB.reader(buf)
+  key, arg = NWB.read(r)
+  local code, dangling_text, defline, deflines, space_pending
+  while key do
+    if key == nil then noweb_error("key was nil!")
+    <<cases for unmarkup>>
+    end
+    key, arg = NWB.read(r)
+  end
+  if outfile then
+    writetox(oldout)
+  end
+  return 0
+end
+@ 
+<<cases for unmarkup>>=
+elseif key == NW_BEGIN_DOCS then  if arg ~= "0" then write('@'); space_pending = 1 end
+elseif key == NW_BEGIN_CODE then  code = 1
+elseif key == NW_END_DOCS or key == NW_END_CODE then
+		code = nil
+		if dangling_text then write('\n') end
+		dangling_text = nil
+                write(deflines)
+                if defline ~= "" then write(defline, '\n') end
+                deflines = "" ; defline = ""
+elseif key == NW_DEFN then    write('@<<', arg, '@>>=')
+elseif key == NW_TEXT then if arg ~= '' then
+               arg = gsub(arg, "<<", "@<<")
+               arg = gsub(arg, ">>", "@>>")
+               if not (code or quoting) then
+                 arg = gsub(arg, '%[%[', "@[[")
+                 arg = gsub(arg, '%]%]', "@]]")
+               end
+	       <<emit pending space, if any>>
+               write(arg)
+               dangling_text = 1
+             end
+elseif key == NW_QUOTE    then <<emit pending space, if any>>
+                 write("[["); dangling_text = 1; quoting = 1
+elseif key == NW_ENDQUOTE then <<emit pending space, if any>>
+                 write("]]"); dangling_text = 1; quoting = nil
+elseif key == NW_NL       then write("\n"); space_pending = nil; dangling_text = nil
+elseif key == NW_INDEX_DEFN then
+     if defline == "" then defline = "@ %def" end
+     defline = defline .. " " .. arg
+elseif key == NW_INDEX_NL then
+     deflines = deflines .. defline .. "\n"
+     defline = ""
+elseif key == NW_USE then write('@<<' .. arg .. '@>>')
+            dangling_text = 1
+else -- do nothing
+@ This trick delays a space after~[[@]] until it is seen to be
+warranted.  That way, we avoid a trailing space when the [[@]] that ends a
+documentation chunk appears on a line by itself.
+<<emit pending space, if any>>=
+if space_pending then
+  write(' ')
+  space_pending = nil
+end
+@ 
+
