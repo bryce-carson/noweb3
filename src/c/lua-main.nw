@@ -103,7 +103,7 @@ There is no header for this unit.
 @
 
 \section{Debugging the damned loading of [[noweb.cfg]] which doesn't work}
-\leavevmode\marginpar{\leavevmode\sffamily\color{blue}\scriptsize BC}
+% \leavevmode\marginpar{\leavevmode\sffamily\color{blue}\scriptsize BC}
 While clarifying the makefiles with the boiling heat \textsc{GNU Make} features,
 I've finally reached the point where I can build the top-level [[all]] target,
 though my build of [[no]] currently has difficulty with this statement. I

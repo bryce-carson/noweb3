@@ -16,8 +16,10 @@ LUAOBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,parser lex opcode hash table ino
 
 LIBOBJS = $(addprefix $(OUTPUT)/,iolib.o mathlib.o strlib.o)
 
+all : $(OUTPUT)/lua
+
 $(OUTPUT)/lua : $(OUTPUT)/lua.o $(OUTPUT)/liblua.so $(OUTPUT)/liblualib.so
-	$(CC) $(CFLAGS) -o $@ lua.o -L. -llua -llualib -lm
+	$(CC) $(CFLAGS) -o $@ -I. -lm $^
 
 $(OUTPUT)/liblua.so : $(LUAOBJS)
 	$(AR) $(ARFLAGS) $@ $?
@@ -28,20 +30,20 @@ $(OUTPUT)/liblualib.so : $(LIBOBJS)
 $(OUTPUT)/liblua.so.1.0 : lua.o
 	$(LD) -o liblua.so.1.0 $(LDFLAGS) $(LUAOBJS)
 
-$(OUTPUT)/y.tab.c $(OUTPUT)/y.tab.h  : lua.stx
+y.tab.c y.tab.h : lua.stx
 	yacc -d lua.stx -o $@
 
-$(OUTPUT)/parser.c : $(OUTPUT)/y.tab.c
-	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' $(OUTPUT)/y.tab.c > $(OUTPUT)/parser.c
+parser.c : y.tab.c
+	sed -e 's/yy/luaY_/g' -e 's/malloc\.h/stdlib\.h/g' y.tab.c > parser.c
 
-$(OUTPUT)/parser.h : $(OUTPUT)/y.tab.h
-	sed -e 's/yy/luaY_/g' $(OUTPUT)/y.tab.h > $(OUTPUT)/parser.h
+parser.h : y.tab.h
+	sed -e 's/yy/luaY_/g' y.tab.h > parser.h
 
 clear	:
 	rm -f *.o
 	rm -f parser.c parser.h y.tab.c y.tab.h
 
-$(OUTPUT)/parser.o : $(OUTPUT)/parser.c $(OUTPUT)/parser.h
+$(OUTPUT)/parser.o : parser.c parser.h
 	$(CC) -c $(CFLAGS) $(LDFLAGS) -I. -o $@ $<
 
 $(OUTPUT)/%.o : %.c
