@@ -29,20 +29,23 @@ nwprocess.c nwprocess.h nwtime.c nwtime.h precompiled.h recognize.c recognize.h\
 stages.c stages.h strsave.c strsave.h sys.c sys.h util.c util.h xpipe-lua.c    \
 xpipe-lua.h xpipe.c xpipe.h)
 
+CFLAGS += -g
+
 # Define a metarule so rules aren't needed for each object file.
-.c.o: ;
-	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
+.c.o : ;
+	$(CC) $(INCS) $(CFLAGS) $(CPPFLAGS) -o $@ $*.c
 
 all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
 doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
 	latexmk -output-directory=$(OUTPUT) doc.tex
 
-$(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
-	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
+$(OUTPUT)/nwmtime : $(NWMTIMEOBJS)
+	$(CC) $(filter-out -c,$(CFLAGS)) $(CPPFLAGS) $(LDFLAGS) $(NWMTIMEOBJS) -o $@
 
-$(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
+$(OUTPUT)/no: LIB = $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+$(OUTPUT)/no : $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+	$(CC) $(filter-out -c,$(CFLAGS)) $(XCFLAGS) $(CPPFLAGS) $(XINCLUDES) $(LDFLAGS) -lm $(NOOBJS) $(LIBPROLOGUE) $(LIB) $(LIBEPILOGUE) -o $@
 
 touch: $(SRCS)
 	touch $(SRCS)

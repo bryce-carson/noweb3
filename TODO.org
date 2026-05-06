@@ -100,6 +100,7 @@ The top-level makefile parses the make command-line options and validates them.
   CC ?= gcc
   CFLAGS ?= -ansi -pedantic -std=c11 -c
   XCFLAGS ?= 
+  CPPFLAGS ?= -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -Dnw_unix
   ## Linker-loader
   LD ?= gcc
   LIBPROLOGUE ?= 
@@ -327,19 +328,17 @@ The top-level makefile parses the make command-line options and validates them.
   	-$(RMDIR) $(BUILD_EXEC)/tex
 #+end_src
 
-** TODO C
+** TODO C: PDF Compilation
 This is the most important Makefile, other than the top-level makefile, as this
 consumes the output of all the others: CII; an embeddable Lua; scripts written
 in Lua.
 
 PDF compilation fails.
 
-#+begin_src latex
-  Anyways, apparently [[2]] is the correct error code and something else is going
-  on with the system that is preventing it from loading noweb files properly,
-  especially [[weave]] or [[tangle]]! I need to compile the project with dubugging
-  symbols and see what is happening when [[load_nwfile]] is called.
-#+end_src
+Anyways, apparently =2= is the correct error code and something else is going on
+with the system that is preventing it from loading noweb files properly,
+especially =weave= or =tangle=! I need to compile the project with dubugging
+symbols and see what is happening when =load_nwfile= is called.
 
 #+begin_src makefile :tangle src/c/Makefile
   INCS = -I. -I../cii/include -I$(LUA)
@@ -373,20 +372,23 @@ PDF compilation fails.
   stages.c stages.h strsave.c strsave.h sys.c sys.h util.c util.h xpipe-lua.c    \
   xpipe-lua.h xpipe.c xpipe.h)
 
+  CFLAGS += -g
+
   # Define a metarule so rules aren't needed for each object file.
-  .c.o: ;
-  	$(CC) $(INCS) $(XCFLAGS) $(CFLAGS) -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -o $@ $*.c
+  .c.o : ;
+  	$(CC) $(INCS) $(CFLAGS) $(CPPFLAGS) -o $@ $*.c
 
   all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
   doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
   	latexmk -output-directory=$(OUTPUT) doc.tex
 
-  $(OUTPUT)/nwmtime: $(NWMTIMEOBJS)
-  	$(CC) $(LDFLAGS) -o $@ $(NWMTIMEOBJS)
+  $(OUTPUT)/nwmtime : $(NWMTIMEOBJS)
+  	$(CC) $(filter-out -c,$(CFLAGS)) $(CPPFLAGS) $(LDFLAGS) $(NWMTIMEOBJS) -o $@
 
-  $(OUTPUT)/no: $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-  	$(CC) $(LDFLAGS) -lm -o $@ $(NOOBJS) $(LIBPROLOG) $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so) $(LIBEPILOG)
+  $(OUTPUT)/no: LIB = $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+  $(OUTPUT)/no : $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+  	$(CC) $(filter-out -c,$(CFLAGS)) $(XCFLAGS) $(CPPFLAGS) $(XINCLUDES) $(LDFLAGS) -lm $(NOOBJS) $(LIBPROLOGUE) $(LIB) $(LIBEPILOGUE) -o $@
 
   touch: $(SRCS)
   	touch $(SRCS)
@@ -562,12 +564,11 @@ This was converted from Lua to Guile Scheme by Grok.
 
 ** DONE Lua
 CLOSED: [2026-05-03 Sun 20:18]
-Below is the original =src/lua/Makefile=.
 
 #+begin_src makefile :tangle src/lua/Makefile
   CONFIG = pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws
   FILTERS = cat.nws stripconds.nws xchunks.nws lines.nws
-  STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws
+  STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws $(FILTERS)
   SCRIPTS = tangle.nws weave.nws
 
   all: $(CONFIG) $(STAGES) $(SCRIPTS)

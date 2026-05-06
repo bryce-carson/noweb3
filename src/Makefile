@@ -14,6 +14,7 @@ SHELL ?= /usr/bin/bash
 CC ?= gcc
 CFLAGS ?= -ansi -pedantic -std=c11 -c
 XCFLAGS ?= 
+CPPFLAGS ?= -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -Dnw_unix
 ## Linker-loader
 LD ?= gcc
 LIBPROLOGUE ?= 

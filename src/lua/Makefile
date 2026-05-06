@@ -1,6 +1,6 @@
 CONFIG = pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws
 FILTERS = cat.nws stripconds.nws xchunks.nws lines.nws
-STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws
+STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws $(FILTERS)
 SCRIPTS = tangle.nws weave.nws
 
 all: $(CONFIG) $(STAGES) $(SCRIPTS)

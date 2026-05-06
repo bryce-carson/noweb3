@@ -65,7 +65,7 @@ int load_nwfile(const char *filename) {
      fname = Fmt_string("%s%s%s", p->first, Sys_dirsep, filename);
      if ((fp = fopen(fname, "r"))) {
        fclose(fp);
-       fprintf(stderr, "Opening file %s", fname);
+       fprintf(stderr, "[util.nw: lua_dofile(%s)\n", fname);
        rc = lua_dofile(fname);
        FREE(fname);
        return rc;

@@ -1,4 +1,5 @@
 
+
 \section{autodefs.nw}
 
 \subsection{automatic definitions recognition (in Icon)}
@@ -169,6 +170,7 @@ do_nwfile("stripconds.nws")
 do_nwfile("xchunks.nws")
 <<set fallback for connecting pipelines>>
 @ 
+
 <<util.cfg>>=
 $debug
 function libFile(name)
@@ -538,7 +540,6 @@ FIXME: Also undocumented \texttt{-eat} option.
 
 @
 
-\subsection{Eliding}
 The main loop simply copies the input to the output.
 We stop only if we see [[@begin code]], because that means we might
 need to elide.
@@ -857,7 +858,7 @@ Takes two arguments, a list and an item,
 and appends the item to the end of the list.\\
 @
 
-<<*>>=
+<<list.nws>>=
 function List.put(list, item)
   list[List.length(list) + 1] = item
 end
@@ -1664,7 +1665,7 @@ function Set.length(set)
   return n
 end
 @
-@<<hackers: entries for set functions>>=
+<<hackers: entries for set functions>>=
 Set.members&
 Returns list of the elements in a set.\\
 @
@@ -2095,7 +2096,7 @@ We do this with a [[while]] loop.
 After the loop there are many alternatives to decide how far to go to
 get the taggable text --- or if there is taggable text at all.
 
-<<*>>=
+<<tohtml.nws>>=
 Tohtml = Tohtml or { }
 function Tohtml.untagged_chars_range(s)
   local trail, start, next
@@ -2166,7 +2167,7 @@ elseif key == NW_USE  then Tohtml.writechunk(lastxreflabel, lastxrefref, "i", va
 @
 Writing a chunk involves creating an anchor for it.
 The anchor is ``bare'' because it's always in an HTML-containing place.
-<<*>>=
+<<tohtml.nws>>=
 function Tohtml.writechunk(label, ref, tag, name, suffix)
   suffix = suffix or ""
   write(linklabelto(label, ref, 
@@ -2209,7 +2210,7 @@ lastxreflabel = nil; lastxrefref = nil
 if lastxreflabel then Tohtml.warn_unused_xref("label", lastxreflabel) end
 <<warn if unused [[lastxrefref]]>>=
 if lastxrefref   then Tohtml.warn_unused_xref("ref", lastxrefref) end
-<<*>>=
+<<tohtml.nws>>=
 Tohtml.warned = Set.new()
 function Tohtml.warn_unused_xref(tag, label)
   if not Set.member(Tohtml.warned, tag) then
@@ -2387,7 +2388,7 @@ elseif key == NW_INDEX_BEGINUSES or key == NW_INDEX_ISDEFINED or key ==  NW_INDE
     -- do nothing; use local links
 @
 
-## Support functions
+\subsection{Support functions}
 
 Here's all our anchor support goo.
 Unless the anchor is deemed ``bare,'' the beginning and ending tags
@@ -2487,7 +2488,7 @@ function Tohtml.convquotes(s)
 end
 @ 
 
-# Converting [[noweb]] markup to $\TeX{}$ markup (Lua version)
+\section{Converting [[noweb]] markup to $\TeX{}$ markup (Lua version)}
 
 The copyright applies both to the {\tt noweb} source and to the
 generated shell script.
@@ -2496,23 +2497,23 @@ generated shell script.
 -- Copyright 1991-1998 by Norman Ramsey.  All rights reserved.
 -- See file COPYRIGHT for more information.
 
-    @<<hackers: subsubsections for internal sinks>>=
-    \subsubsection{The sink \texttt{Stages.totex}}
+<<hackers: subsubsections for internal sinks>>=
+\subsubsection{The sink \texttt{Stages.totex}}
     
-    {\tt Stages.totex} implements both the plain {\TeX} and {\LaTeX} back ends,
-    using \nkw{HEADER} \texttt{tex} and \nkw{HEADER} \texttt{latex} to distinguish them.
-    When using a {\LaTeX} header, {\tt Stages.totex} places the optional text
-    following the header inside a \verb+\noweboptions+ command.
+{\tt Stages.totex} implements both the plain {\TeX} and {\LaTeX} back ends,
+using \nkw{HEADER} \texttt{tex} and \nkw{HEADER} \texttt{latex} to distinguish them.
+When using a {\LaTeX} header, {\tt Stages.totex} places the optional text
+following the header inside a \verb+\noweboptions+ command.
     
-    The arbitrary argument is a list of options.
-    The {\tt -delay} option makes {\tt Stages.totex} delay
-    filename markup until after the first documentation chunk; this
-    behavior makes the first documentation chunk a ``limbo''
-    chunk, which can usefully contain commands like \verb+\documentclass+.
-    The {\tt -noindex} option suppresses output relating to the index of
-    identifiers; it is used to implement {\tt noweave -x}.
-    
-    @
+The arbitrary argument is a list of options.
+The {\tt -delay} option makes {\tt Stages.totex} delay
+filename markup until after the first documentation chunk; this
+behavior makes the first documentation chunk a ``limbo''
+chunk, which can usefully contain commands like \verb+\documentclass+.
+The {\tt -noindex} option suppresses output relating to the index of
+identifiers; it is used to implement {\tt noweave -x}.
+
+@
 
 Here's the organization of the source:
 
@@ -2630,7 +2631,7 @@ elseif key == NW_TEXT then text = text + strlen(value)
                     else writes(value)
                     end
 		    lastindexref = nil
-<<*>>=
+<<totex.nws>>=
 function linked_ident(context, text, tag)
   if tag then 
     return "\\nwlinkedident" .. context .. "{" .. text .. "}{" .. tag .. "}"
@@ -2685,7 +2686,7 @@ useitemstab = {}
 elseif key == NW_USE then if lastxrefref then t = "~"..label2tag(lastxrefref) else t = "" end
                    writes("\\LA{}", convquotes(value), t, "\\RA{}")
                    <<clear [[lastxref*]]>>
-<<*>>=
+<<totex.nws>>=
 function label2tag(label)
   return "{\\nwtagstyle{}\\subpageref{" .. label .. "}}"
 end
@@ -2765,7 +2766,7 @@ if pendingprev or pendingnext then
 end
 <<clear [[lastxref*]]>>=
 lastxreflabel, lastxrefref = nil, nil
-<<*>>=
+<<totex.nws>>=
 function dumpitems(items, cs)
   local i, n 
   if items and List.length(items) > 0 then
@@ -2871,10 +2872,11 @@ elseif key == NW_INDEX_ENTRYDEFN  then    -- handled by latex
 elseif key == NW_INDEX_ENTRYEND   then
 elseif key == NW_INDEX_ENDINDEX   then
 @
-\subsection{HEader comments}
+\subsection{Header comments}
 This godawful hack slips in a comment without messing up our line
 numbers.
-<<*>>=
+
+<<totex.nws>>=
 function goodnewline()
   write("\n")
 end
@@ -2884,13 +2886,15 @@ function firstnewline ()
 end
 newline = firstnewline
 @
+
 \subsection{Utility procedures}
-<<*>>=
+
+<<totex.nws>>=
 function backslash_3(line)
   return gsub(line, "([\\{}])", "\\%1")
 end
-<<*>>=
 @
+
 I can't use [[\\char`\%]] and similar sequences with latex2e, because
 [[`]] is an active character that suppresses ligatures.  So I got TeX to print out the
 actual character codes for me.
@@ -2909,7 +2913,8 @@ allows their use in math mode.}
 we generate special macros defined in \verb"noweb.sty" and
 \verb"nwmac.tex".  The default definitions are geared to typewriter
 fonts, but they can be redefined as necessary.
-<<*>>=
+
+<<totex.nws>>=
 TeXliteral_codes = { }
 function init_codes ()
   local c = TeXliteral_codes
@@ -2940,7 +2945,7 @@ init_codes()
 @
 A special function is used to implement {\tt noweb}'s quoting 
 convention within chunk names.
-<<*>>=
+<<totex.nws>>=
 function convquotes(s)
   answer = ""
   l, r = strfind(s, "%[%[")
@@ -2961,7 +2966,7 @@ function convquotes(s)
 end
 <<initialization>>=
 warned = {}
-<<*>>=
+<<totex.nws>>=
 function warn_unknown(tag, value)
   local v
   if value then v = " " .. value else v = "" end
@@ -2972,14 +2977,14 @@ function warn_unknown(tag, value)
 end
 @
 This gets special characters out of the labels used by identifiers.
-<<*>>=
+<<totex.nws>>=
 function replace_trans(s)
   return ":" .. trans[s]
 end
 function indexlabel(ident)
   return gsub(ident, transpat, replace_trans)
 end
-<<*>>=
+<<totex.nws>>=
 trans = {}
 transpat = "([ #$%%&,:\\^_{}~])"
 trans[" "] = "sp"      -- space
@@ -2996,7 +3001,7 @@ trans["{"] = "lb"      -- left brace
 trans["}"] = "rb"      -- right brace
 trans["~"] = "ti"      -- tilde
 @ 
-<<*>>=
+<<totex.nws>>=
 function split_first_space(s)
   local start, fin = strfind(s, ' ')
   if start then
@@ -3006,12 +3011,8 @@ function split_first_space(s)
   end
 end
 @ 
-<<totex.nws>>=
-<<*>>
 
-@ 
-
-# Convert Noweb pipeline back to ASCII form
+\section{Convert Noweb pipeline back to ASCII form}
 
 <<unmarkup.nws>>=
 -- Copyright 1991,1999 by Norman Ramsey.  All rights reserved.
@@ -3085,8 +3086,7 @@ if space_pending then
 end
 @ 
 
-# Weaving a [[noweb]] file into a $\TeX{}$ file
-
+\section{Weaving a [[noweb]] file into a $\TeX{}$ file}
 The copyright applies both to the [[noweb]] source and to the
 generated shell script.
 
@@ -3742,7 +3742,7 @@ end
 Noweave.oldconcatfallback = setfallback("concat", Noweave.concatfallback)
 @
 
-# Getting chunks from an external "dictionary"
+\section{Getting chunks from an external "dictionary"}
 
 Mike Smith wants to do an unweblike thing: keep his code and
 documentation in separate source files.
