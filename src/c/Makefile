@@ -38,7 +38,7 @@ CFLAGS += -g
 all: $(OUTPUT)/no $(OUTPUT)/nwmtime
 
 doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
-	latexmk -output-directory=$(OUTPUT) doc.tex
+	latexmk -output-directory=$(OUTPUT) $(OUTPUT)/doc.tex
 
 $(OUTPUT)/nwmtime : $(NWMTIMEOBJS)
 	$(CC) $(filter-out -c,$(CFLAGS)) $(CPPFLAGS) $(LDFLAGS) $(NWMTIMEOBJS) -o $@

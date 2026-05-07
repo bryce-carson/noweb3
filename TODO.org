@@ -715,4 +715,18 @@ This makefile is based upon the upstream.
 The mathematics library for Lua 2.5.1 is not compiling properly; there are missing symbols.
 
 *** TODO 3.2.2
+#+begin_src makefile :tangle src/lua-3.2.2/Makefile
+  # makefile for lua hierarchy
+
+  all clean klean:
+  	$(MAKE) -C include $@
+  	$(MAKE) -C src $@
+  	$(MAKE) -C src/luac $@
+  	$(MAKE) -C src/lib $@
+  	$(MAKE) -C src/lua $@
+
+  strip:
+  	strip bin/lua*
+
+#+end_src
 *** TODO 5.5.0

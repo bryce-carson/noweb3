@@ -1,6 +1,6 @@
 # makefile for lua hierarchy
 
-all co clean klean:
+all clean klean:
 	$(MAKE) -C include $@
 	$(MAKE) -C src $@
 	$(MAKE) -C src/luac $@

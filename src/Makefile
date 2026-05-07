@@ -205,7 +205,7 @@ checksame:
 	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
 pdf:
-	@echo "Building the PDF mail fail if you don't have no installed properly."
+	@echo "Building the PDF may fail if you don't have no installed properly."
 	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
 
 install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
