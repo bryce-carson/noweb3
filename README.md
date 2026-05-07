@@ -45,7 +45,8 @@ Rammel uses:
 
 - any of [**PUC Rio's** *Lua 2.5.1*, *Lua 3.2.2*, or *Lua 5.5.0*](https://www.lua.org/);
 - the same subselection of interfaces and implementations from [**Dave Hanson's** *C Interfaces and Implementations*](https://drh.github.io/cii/) as used in the original noweb version 3;
-- [*GNU Make*](https://www.gnu.org/software/make/) for building Rammel from sources.
+- [***GNU** Make*](https://www.gnu.org/software/make/) for building Rammel from sources;
+- mkinstalldirs, a public domain script available in [*Gnulib*](https://www.gnu.org/software/gnulib/).
 
 Rammel is derived from [David Zitzelsberger's modified version of noweb version 3](https://github.com/dazitzel/noweb3), and David deserves all credit for the work of converting the filters and stages written in Ramseys's custom *lua2.5+nw* to standard *Lua 2.5* an standard *Lua 3* syntax.
 
