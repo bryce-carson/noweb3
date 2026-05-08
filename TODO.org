@@ -139,9 +139,11 @@ The top-level makefile parses the make command-line options and validates them.
 
   NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
+  LUA_VERSION = 2
+
   # Stop editing. No user-serviceable parts below.
-  .EXPORT_ALL_VARIABLES:
-  .PHONY: help transfer install pdf
+  .EXPORT_ALL_VARIABLES :
+  .PHONY : help transfer install pdf
 
   help :
   	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
@@ -164,49 +166,54 @@ The top-level makefile parses the make command-line options and validates them.
   	@echo "POSIX (by default, \"$(POSIX)\"): Whether or not this system is POSIX-compliant."
   	@echo "STRERROR (by default, \"$(STRERROR)\"): TODO: document this option."
 
-  all: code scripts styles
+  all : code scripts styles
 
-  installdirs: $(srcdir)/mkinstalldirs
+  installdirs : $(srcdir)/mkinstalldirs
   	$(srcdir)/mkinstalldirs $(DESTDIR)$(LIBEXEC) $(TEXINPUTS)
 
-  $(BUILD_EXEC): $(srcdir)/mkinstalldirs
+  $(BUILD_EXEC) : $(srcdir)/mkinstalldirs
   	$(srcdir)/mkinstalldirs $(addprefix $(BUILD_EXEC)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
 
-  tools: $(BUILD)
+  tools : $(BUILD)
   	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools"
 
-  ciilib: $(BUILD)
+  ciilib : $(BUILD)
   	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii"
 
-  lualib: $(BUILD)
+  lualib : $(BUILD)
   	$(MAKE) -C $(srcdir)/lua-2.5.1 "OUTPUT=$(BUILD_EXEC)/lua-2.5.1"
 
-  lualib3: $(BUILD)
+  lualib3 : $(BUILD)
   	$(MAKE) -C $(srcdir)/lua-3.2.2 "OUTPUT=$(BUILD_EXEC)/lua-3.2.2"
 
-  code: tools ciilib lualib
-  	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=../lua-2.5.1" "LUALIB=$(BUILD_EXEC)/lua-2.5.1" "OUTPUT=$(BUILD_EXEC)/c"
+  TANGLEOPTS = " | $(addprefix $(BUILD_EXEC)/tools/,markup nt)"
+  code: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+  code : tools ciilib lualib
+  	$(MAKE) -C $(srcdir)/c                      \
+          "NOTANGLE=more"                       \
+          "TANGLEOPTS= $(TANGLEOPTS)"           \
+          "CPIF=>"                              \
+          "TOOLS=$(BUILD_EXEC)/tools"           \
+          "LUA=../$(LUA_VERSION)"               \
+          "LUALIB=$(BUILD_EXEC)/$(LUA_VERSION)" \
+          "OUTPUT=$(BUILD_EXEC)/c"
 
-  scripts: tools
-  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+  scripts: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+  scripts : tools
+  	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 
-  styles: tools
-  	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS= | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+  styles : tools
+  	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
-  careful:
-  	$(MAKE) clobber
-  	$(MAKE) all
-  	$(MAKE) clean
+  careful :
+  	$(MAKE) clobber all clean
   	-$(RMDIR) $(BUILD_EXEC)/first
   	mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
   	cp -R $(BUILD_EXEC)/c/* $(BUILD_EXEC)/first/c
   	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
   	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
 
-  	$(MAKE) clobber
-  	$(MAKE) tools
-  	$(MAKE) ciilib
-  	$(MAKE) lualib
+  	$(MAKE) clobber tools ciilib lualib
   	-mkdir $(BUILD_EXEC)/c
   	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(BUILD_EXEC)/c"
 
@@ -240,8 +247,7 @@ The top-level makefile parses the make command-line options and validates them.
 
   transfer:
   # noweb_2_11b->Rammel with Lua 2
-  	$(MAKE) clobber
-  	$(MAKE) all
+  	$(MAKE) clobber all
   	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
   	$(foreach d,$(addprefix $(BUILD_EXEC)/,2b 2b/c 2b/lua 2b/tex), mkdir ${d})
   	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/2b/${d})
@@ -267,40 +273,37 @@ The top-level makefile parses the make command-line options and validates them.
 
 
   # check differences
-  	$(MAKE) clean
-  	$(MAKE) checkclean
+  	$(MAKE) clean checkclean checkdifferent checksame
+
+
+
+
+
+  checkclean :
   	@echo "Let's see how different it is..."
-  	$(MAKE) checkdifferent
-  	@echo "Let's see how similar it is..."
-  	$(MAKE) checksame
-
-
-
-
-
-  checkclean:
-  	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(BUILD_EXEC)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.pdf)))
+  	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(BUILD_EXEC)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.dvi)))
 
   checkdifferent_fn=$(DIFF) $(foreach other,3b 32 33,$(BUILD_EXEC)/$1 $(BUILD_EXEC)/${other})
-  checkdifferent:
+  checkdifferent :
   	$(foreach other,2b 22 23,$(call checkdifferent_fn, ${other}))
 
-  checksame:
+  checksame :
+  	@echo "Let's see how similar it is..."
   	$(DIFF) $(BUILD_EXEC)/2b $(BUILD_EXEC)/22
   	$(DIFF) $(BUILD_EXEC)/22 $(BUILD_EXEC)/23
   	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
-  pdf:
+  dvi :
   	@echo "Building the PDF may fail if you don't have no installed properly."
-  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
+  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" dvi
 
-  install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
+  install : installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
   	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(BIN) $(addprefix $(BUILD_EXEC)/c/,no nwmtime)
   	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(LIBEXEC) $(wildcard $(BUILD_EXEC)/lua/*)
   	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
   	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
-  clean:
+  clean :
   	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
   	-$(RMDIR) $(BUILD_EXEC)/tools
 
@@ -317,7 +320,7 @@ The top-level makefile parses the make command-line options and validates them.
 
 
 
-  clobber: clean
+  clobber : clean
   	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clobber
   	-$(RMDIR) $(BUILD_EXEC)/c
 
@@ -328,7 +331,7 @@ The top-level makefile parses the make command-line options and validates them.
   	-$(RMDIR) $(BUILD_EXEC)/tex
 #+end_src
 
-** DONE C: PDF Compilation
+** DONE C
 CLOSED: [2026-05-06 Wed 22:30]
 This is the most important Makefile, other than the top-level makefile, as this
 consumes the output of all the others: CII; an embeddable Lua; scripts written
@@ -342,15 +345,19 @@ especially =weave= or =tangle=! I need to compile the project with dubugging
 symbols and see what is happening when =load_nwfile= is called.
 
 #+begin_src makefile :tangle src/c/Makefile
-  INCS = -I. -I../cii/include -I$(LUA)
+  INCS = $(addprefix -I$(srcdir)/,c cii/include)
 
-  # ifeq ($(LUA),lua-2.5.1)
-  # INCS += -I$(LUA)
-  # else
-  # INCS += -I$(LUA)/include
-  # endif
-
-
+  ifeq ($(LUA_VERSION),2)
+  LUA_VERSION=lua-2.5.1
+  INCS += -I$(LUA_VERSION)
+  else ifeq ($(LUA_VERSION),3)
+  LUA_VERSION=lua-3.2.2
+  INCS += -I$(LUA)/include
+  else ifeq ($(LUA_VERSION),5)
+  LUA_VERSION=lua-5.5.0
+  else
+  $(error "LUA_VERSION must be one of 2, 3, or 5.")
+  endif
 
   NOOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns cpif env-lua errors       \
   finduses fromascii getline ipipe ipipe-lua lua-help lua-main main markparse    \
@@ -379,28 +386,28 @@ symbols and see what is happening when =load_nwfile= is called.
   .c.o : ;
   	$(CC) $(INCS) $(CFLAGS) $(CPPFLAGS) -o $@ $*.c
 
-  all: $(OUTPUT)/no $(OUTPUT)/nwmtime
+  all : $(OUTPUT)/no $(OUTPUT)/nwmtime
 
-  doc: $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
+  dvi : $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
   	latexmk -output-directory=$(OUTPUT) $(OUTPUT)/doc.tex
 
   $(OUTPUT)/nwmtime : $(NWMTIMEOBJS)
   	$(CC) $(filter-out -c,$(CFLAGS)) $(CPPFLAGS) $(LDFLAGS) $(NWMTIMEOBJS) -o $@
 
-  $(OUTPUT)/no: LIB = $(addprefix $(BUILD_EXEC)/,cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
-  $(OUTPUT)/no : $(NOOBJS) $(addprefix $(BUILD_EXEC)/,cii/memchk.o cii/libcii.so lua-2.5.1/liblua.so lua-2.5.1/liblualib.so)
+  $(OUTPUT)/no: LIB = $(addprefix $(BUILD_EXEC)/,cii/libcii.so $(LUA_VERSION)/liblua.so $(LUA_VERSION)/liblualib.so)
+  $(OUTPUT)/no : $(NOOBJS) $(LIB) $(BUILD_EXEC)/cii/memchk.o
   	$(CC) $(filter-out -c,$(CFLAGS)) $(XCFLAGS) $(CPPFLAGS) $(XINCLUDES) $(LDFLAGS) -lm $(NOOBJS) $(LIBPROLOGUE) $(LIB) $(LIBEPILOGUE) -o $@
 
-  touch: $(SRCS)
+  touch : $(SRCS)
   	touch $(SRCS)
 
-  clean:
+  clean :
   	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
-  clobber: clean
+  clobber : clean
   	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
 
-  $(OUTPUT)/doc.tex: doc.nw
+  $(OUTPUT)/doc.tex : doc.nw
   	cp doc.nw $@
 
   FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua    \
@@ -408,59 +415,59 @@ symbols and see what is happening when =load_nwfile= is called.
   nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe                       \
   xpipe-lua)
 
-  $(OUTPUT)/allcode.tex: $(FILES)
+  $(OUTPUT)/allcode.tex : $(FILES)
   	no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
 
 
 
 
-  $(OUTPUT)/%.h: %.nw
+  $(OUTPUT)/%.h : %.nw
   	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rheader $(CPIF) $@
 
-  $(OUTPUT)/%.c: %.nw
+  $(OUTPUT)/%.c : %.nw
   	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") $(CPIF) $@
 
-  $(OUTPUT)/nwbuffer-lua.c: nwbuffer.nw
+  $(OUTPUT)/nwbuffer-lua.c : nwbuffer.nw
   	$(NOTANGLE) $< $(TANGLEOPTS) -L$(subst SUBST,$<,"#line %L \"SUBST\"%N") -Rnwbuffer-lua.c $(CPIF) $@
 
 
 
 
 
-  $(OUTPUT)/columns.o: $(addprefix $(OUTPUT)/,cargs.h columns.h columns.c)
-  $(OUTPUT)/cpif.o: $(addprefix $(OUTPUT)/,cpif.h cpif.c errors.h strsave.h)
-  $(OUTPUT)/env-lua.o: $(addprefix $(OUTPUT)/,env-lua.h lua-help.h)
-  $(OUTPUT)/errors.o: $(addprefix $(OUTPUT)/,errors.c errors.h)
-  $(OUTPUT)/finduses.o: $(addprefix $(OUTPUT)/,errors.h finduses.c getline.h match.h nwbuffer.h recognize.h)
-  $(OUTPUT)/fromascii.o: $(addprefix $(OUTPUT)/,errors.h fromascii.c fromascii.h getline.h nwbuffer.h)
-  $(OUTPUT)/getline.o: $(addprefix $(OUTPUT)/,columns.h errors.h getline.c getline.h)
-  $(OUTPUT)/ipipe.o: $(addprefix $(OUTPUT)/,ipipe.c ipipe.h nwbuffer.h nwtime.h)
-  $(OUTPUT)/ipipe-lua.o: $(addprefix $(OUTPUT)/,ipipe-lua.c ipipe-lua.h)
-  $(OUTPUT)/lua-help.o: $(addprefix $(OUTPUT)/,lua-help.c lua-help.h)
-  $(OUTPUT)/lua-main.o: $(addprefix $(OUTPUT)/,env-lua.h ipipe-lua.h lua-main.c lua-main.h misc-lua.h mpipe-lua.h noweb-lua.h stages.h util.h xpipe-lua.h)
-  $(OUTPUT)/main.o: $(addprefix $(OUTPUT)/,cargs.h columns.h cpif.h errors.h main.c modtrees.h modules.h notangle.h nwbuffer.h)
-  $(OUTPUT)/markparse.o: $(addprefix $(OUTPUT)/,columns.h errors.h getline.h markparse.c markparse.h markup.h nwbuffer.h)
-  $(OUTPUT)/markup.o: $(addprefix $(OUTPUT)/,errors.h markup.c markup.h strsave.h)
-  $(OUTPUT)/misc-lua.o: $(addprefix $(OUTPUT)/,lua-help.h misc-lua.c misc-lua.h)
-  $(OUTPUT)/modtrees.o: $(addprefix $(OUTPUT)/,errors.h modtrees.c modtrees.h modules.h strsave.h)
-  $(OUTPUT)/modules.o: $(addprefix $(OUTPUT)/,columns.h errors.h modtrees.h modules.c modules.h strsave.h)
-  $(OUTPUT)/mpipe.o: $(addprefix $(OUTPUT)/,fromascii.h ipipe.h mpipe.c mpipe.h nwbuffer.h xpipe.h)
-  $(OUTPUT)/mpipe-lua.o: $(addprefix $(OUTPUT)/,lua-help.h mpipe.h mpipe-lua.c mpipe-lua.h)
-  $(OUTPUT)/notangle.o: $(addprefix $(OUTPUT)/,errors.h getline.h match.h modtrees.h modules.h notangle.c notangle.h nwbuffer.h strsave.h)
-  $(OUTPUT)/noweb-lua.o: $(addprefix $(OUTPUT)/,lua-help.h noweb-lua.c noweb-lua.h util.h)
-  $(OUTPUT)/nwbuffer.o: $(addprefix $(OUTPUT)/,nwbuffer.c nwbuffer.h)
-  $(OUTPUT)/nwbuffer-lua.o: $(addprefix $(OUTPUT)/,lua-help.h nwbuffer.h nwbuffer-lua.c)
-  $(OUTPUT)/nwmtime.o: $(addprefix $(OUTPUT)/,getline.h nwmtime.c)
-  $(OUTPUT)/nwprocess.o: $(addprefix $(OUTPUT)/,nwprocess.c nwprocess.h)
-  $(OUTPUT)/nwtime.o: $(addprefix $(OUTPUT)/,nwtime.c nwtime.h)
-  $(OUTPUT)/recognize.o: $(addprefix $(OUTPUT)/,recognize.c)
-  $(OUTPUT)/stages.o: $(addprefix $(OUTPUT)/,cargs.h fromascii.h lua-help.h markparse.h notangle.h nwbuffer.h stages.c stages.h)
-  $(OUTPUT)/strsave.o: $(addprefix $(OUTPUT)/,errors.h strsave.c strsave.h)
-  $(OUTPUT)/sys.o: $(addprefix $(OUTPUT)/,sys.c sys.h)
-  $(OUTPUT)/util.o: $(addprefix $(OUTPUT)/,precompiled.h sys.h util.c util.h)
-  $(OUTPUT)/xpipe.o: $(addprefix $(OUTPUT)/,errors.h nwprocess.h sys.h util.h xpipe.c xpipe.h)
-  $(OUTPUT)/xpipe-lua.o: $(addprefix $(OUTPUT)/,cargs.h lua-help.h xpipe.h xpipe-lua.c xpipe-lua.h)
+  $(OUTPUT)/columns.o : $(addprefix $(OUTPUT)/,cargs.h columns.h columns.c)
+  $(OUTPUT)/cpif.o : $(addprefix $(OUTPUT)/,cpif.h cpif.c errors.h strsave.h)
+  $(OUTPUT)/env-lua.o : $(addprefix $(OUTPUT)/,env-lua.h lua-help.h)
+  $(OUTPUT)/errors.o : $(addprefix $(OUTPUT)/,errors.c errors.h)
+  $(OUTPUT)/finduses.o : $(addprefix $(OUTPUT)/,errors.h finduses.c getline.h match.h nwbuffer.h recognize.h)
+  $(OUTPUT)/fromascii.o : $(addprefix $(OUTPUT)/,errors.h fromascii.c fromascii.h getline.h nwbuffer.h)
+  $(OUTPUT)/getline.o : $(addprefix $(OUTPUT)/,columns.h errors.h getline.c getline.h)
+  $(OUTPUT)/ipipe.o : $(addprefix $(OUTPUT)/,ipipe.c ipipe.h nwbuffer.h nwtime.h)
+  $(OUTPUT)/ipipe-lua.o : $(addprefix $(OUTPUT)/,ipipe-lua.c ipipe-lua.h)
+  $(OUTPUT)/lua-help.o : $(addprefix $(OUTPUT)/,lua-help.c lua-help.h)
+  $(OUTPUT)/lua-main.o : $(addprefix $(OUTPUT)/,env-lua.h ipipe-lua.h lua-main.c lua-main.h misc-lua.h mpipe-lua.h noweb-lua.h stages.h util.h xpipe-lua.h)
+  $(OUTPUT)/main.o : $(addprefix $(OUTPUT)/,cargs.h columns.h cpif.h errors.h main.c modtrees.h modules.h notangle.h nwbuffer.h)
+  $(OUTPUT)/markparse.o : $(addprefix $(OUTPUT)/,columns.h errors.h getline.h markparse.c markparse.h markup.h nwbuffer.h)
+  $(OUTPUT)/markup.o : $(addprefix $(OUTPUT)/,errors.h markup.c markup.h strsave.h)
+  $(OUTPUT)/misc-lua.o : $(addprefix $(OUTPUT)/,lua-help.h misc-lua.c misc-lua.h)
+  $(OUTPUT)/modtrees.o : $(addprefix $(OUTPUT)/,errors.h modtrees.c modtrees.h modules.h strsave.h)
+  $(OUTPUT)/modules.o : $(addprefix $(OUTPUT)/,columns.h errors.h modtrees.h modules.c modules.h strsave.h)
+  $(OUTPUT)/mpipe.o : $(addprefix $(OUTPUT)/,fromascii.h ipipe.h mpipe.c mpipe.h nwbuffer.h xpipe.h)
+  $(OUTPUT)/mpipe-lua.o : $(addprefix $(OUTPUT)/,lua-help.h mpipe.h mpipe-lua.c mpipe-lua.h)
+  $(OUTPUT)/notangle.o : $(addprefix $(OUTPUT)/,errors.h getline.h match.h modtrees.h modules.h notangle.c notangle.h nwbuffer.h strsave.h)
+  $(OUTPUT)/noweb-lua.o : $(addprefix $(OUTPUT)/,lua-help.h noweb-lua.c noweb-lua.h util.h)
+  $(OUTPUT)/nwbuffer.o : $(addprefix $(OUTPUT)/,nwbuffer.c nwbuffer.h)
+  $(OUTPUT)/nwbuffer-lua.o : $(addprefix $(OUTPUT)/,lua-help.h nwbuffer.h nwbuffer-lua.c)
+  $(OUTPUT)/nwmtime.o : $(addprefix $(OUTPUT)/,getline.h nwmtime.c)
+  $(OUTPUT)/nwprocess.o : $(addprefix $(OUTPUT)/,nwprocess.c nwprocess.h)
+  $(OUTPUT)/nwtime.o : $(addprefix $(OUTPUT)/,nwtime.c nwtime.h)
+  $(OUTPUT)/recognize.o : $(addprefix $(OUTPUT)/,recognize.c)
+  $(OUTPUT)/stages.o : $(addprefix $(OUTPUT)/,cargs.h fromascii.h lua-help.h markparse.h notangle.h nwbuffer.h stages.c stages.h)
+  $(OUTPUT)/strsave.o : $(addprefix $(OUTPUT)/,errors.h strsave.c strsave.h)
+  $(OUTPUT)/sys.o : $(addprefix $(OUTPUT)/,sys.c sys.h)
+  $(OUTPUT)/util.o : $(addprefix $(OUTPUT)/,precompiled.h sys.h util.c util.h)
+  $(OUTPUT)/xpipe.o : $(addprefix $(OUTPUT)/,errors.h nwprocess.h sys.h util.h xpipe.c xpipe.h)
+  $(OUTPUT)/xpipe-lua.o : $(addprefix $(OUTPUT)/,cargs.h lua-help.h xpipe.h xpipe-lua.c xpipe-lua.h)
 #+end_src
 
 To build /no/ and /nwmtime/, the two projects that comprise the Rammel, H and C
@@ -483,12 +490,15 @@ CLOSED: [2026-05-03 Sun 20:18]
   clobber : clean
   	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
 
+  ## LIB2 is the directory where external stanges from Noweb 2 are located; LIB3
+  ## is where stages of Noweb 3 are located. LIB2 and LIB3 do not relate to Lua 2
+  ## or Lua 3.
   install : $(SCRIPTS) $(CONFIG) $(STAGES)
-  	for i in $(CONFIG) $(STAGES); do                  \
+  	for i in $(CONFIG) $(STAGES); do                    \
         sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; \
     done
   	for i in $(SCRIPTS); do                       \
-        cp $$i $(OUTPUT)/`basename $$i .nws`;       \
+        cp $$i $(OUTPUT)/`basename $$i .nws`;     \
     done
 
   $(OUTPUT)/%.cfg : config.nw
@@ -650,7 +660,7 @@ I've tried to clean up this makefile.
   	-$(RM) $(OUTPUT)/libcii$A $(OUTPUT)/*.o
 #+end_src
 
-** TODO Vendored Lua [1/3]
+** TODO Vendored Lua [2/3]
 *** DONE 2.5.1
 CLOSED: [2026-05-03 Sun 01:28]
 This makefile is based upon the upstream.
@@ -714,7 +724,10 @@ This makefile is based upon the upstream.
 
 The mathematics library for Lua 2.5.1 is not compiling properly; there are missing symbols.
 
-*** TODO 3.2.2
+*** DONE 3.2.2
+CLOSED: [2026-05-06 Wed 22:59]
+With Lua 3.2.2 being very easy to compile, I haven't had to make any changes. However, I have removed the =co= target.
+
 #+begin_src makefile :tangle src/lua-3.2.2/Makefile
   # makefile for lua hierarchy
 

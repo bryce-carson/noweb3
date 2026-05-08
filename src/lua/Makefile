@@ -12,12 +12,15 @@ clean :
 clobber : clean
 	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
 
+## LIB2 is the directory where external stanges from Noweb 2 are located; LIB3
+## is where stages of Noweb 3 are located. LIB2 and LIB3 do not relate to Lua 2
+## or Lua 3.
 install : $(SCRIPTS) $(CONFIG) $(STAGES)
-	for i in $(CONFIG) $(STAGES); do                  \
+	for i in $(CONFIG) $(STAGES); do                    \
       sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; \
   done
 	for i in $(SCRIPTS); do                       \
-      cp $$i $(OUTPUT)/`basename $$i .nws`;       \
+      cp $$i $(OUTPUT)/`basename $$i .nws`;     \
   done
 
 $(OUTPUT)/%.cfg : config.nw

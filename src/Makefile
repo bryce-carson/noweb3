@@ -53,9 +53,11 @@ BUILD ?= $(srcdir)/mkinstalldirs | $(BUILD_EXEC)
 
 NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
+LUA_VERSION = 2
+
 # Stop editing. No user-serviceable parts below.
-.EXPORT_ALL_VARIABLES:
-.PHONY: help transfer install pdf
+.EXPORT_ALL_VARIABLES :
+.PHONY : help transfer install pdf
 
 help :
 	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
@@ -78,49 +80,54 @@ help :
 	@echo "POSIX (by default, \"$(POSIX)\"): Whether or not this system is POSIX-compliant."
 	@echo "STRERROR (by default, \"$(STRERROR)\"): TODO: document this option."
 
-all: code scripts styles
+all : code scripts styles
 
-installdirs: $(srcdir)/mkinstalldirs
+installdirs : $(srcdir)/mkinstalldirs
 	$(srcdir)/mkinstalldirs $(DESTDIR)$(LIBEXEC) $(TEXINPUTS)
 
-$(BUILD_EXEC): $(srcdir)/mkinstalldirs
+$(BUILD_EXEC) : $(srcdir)/mkinstalldirs
 	$(srcdir)/mkinstalldirs $(addprefix $(BUILD_EXEC)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
 
-tools: $(BUILD)
+tools : $(BUILD)
 	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools"
 
-ciilib: $(BUILD)
+ciilib : $(BUILD)
 	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii"
 
-lualib: $(BUILD)
+lualib : $(BUILD)
 	$(MAKE) -C $(srcdir)/lua-2.5.1 "OUTPUT=$(BUILD_EXEC)/lua-2.5.1"
 
-lualib3: $(BUILD)
+lualib3 : $(BUILD)
 	$(MAKE) -C $(srcdir)/lua-3.2.2 "OUTPUT=$(BUILD_EXEC)/lua-3.2.2"
 
-code: tools ciilib lualib
-	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=../lua-2.5.1" "LUALIB=$(BUILD_EXEC)/lua-2.5.1" "OUTPUT=$(BUILD_EXEC)/c"
+TANGLEOPTS = " | $(addprefix $(BUILD_EXEC)/tools/,markup nt)"
+code: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+code : tools ciilib lualib
+	$(MAKE) -C $(srcdir)/c                      \
+        "NOTANGLE=more"                       \
+        "TANGLEOPTS= $(TANGLEOPTS)"           \
+        "CPIF=>"                              \
+        "TOOLS=$(BUILD_EXEC)/tools"           \
+        "LUA=../$(LUA_VERSION)"               \
+        "LUALIB=$(BUILD_EXEC)/$(LUA_VERSION)" \
+        "OUTPUT=$(BUILD_EXEC)/c"
 
-scripts: tools
-	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+scripts: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+scripts : tools
+	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 
-styles: tools
-	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS= | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+styles : tools
+	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
-careful:
-	$(MAKE) clobber
-	$(MAKE) all
-	$(MAKE) clean
+careful :
+	$(MAKE) clobber all clean
 	-$(RMDIR) $(BUILD_EXEC)/first
 	mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
 	cp -R $(BUILD_EXEC)/c/* $(BUILD_EXEC)/first/c
 	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
 	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
 
-	$(MAKE) clobber
-	$(MAKE) tools
-	$(MAKE) ciilib
-	$(MAKE) lualib
+	$(MAKE) clobber tools ciilib lualib
 	-mkdir $(BUILD_EXEC)/c
 	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(BUILD_EXEC)/c"
 
@@ -154,8 +161,7 @@ endef
 
 transfer:
 # noweb_2_11b->Rammel with Lua 2
-	$(MAKE) clobber
-	$(MAKE) all
+	$(MAKE) clobber all
 	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
 	$(foreach d,$(addprefix $(BUILD_EXEC)/,2b 2b/c 2b/lua 2b/tex), mkdir ${d})
 	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/2b/${d})
@@ -181,40 +187,37 @@ transfer:
 
 
 # check differences
-	$(MAKE) clean
-	$(MAKE) checkclean
+	$(MAKE) clean checkclean checkdifferent checksame
+
+
+
+
+
+checkclean :
 	@echo "Let's see how different it is..."
-	$(MAKE) checkdifferent
-	@echo "Let's see how similar it is..."
-	$(MAKE) checksame
-
-
-
-
-
-checkclean:
-	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(BUILD_EXEC)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.pdf)))
+	$(foreach clean_target,2b 22 23 3b 32 33,$(RM) $(addprefix $(BUILD_EXEC)/${clean_target}/c/,$(wildcard *.exe *.log *.obj *.dvi)))
 
 checkdifferent_fn=$(DIFF) $(foreach other,3b 32 33,$(BUILD_EXEC)/$1 $(BUILD_EXEC)/${other})
-checkdifferent:
+checkdifferent :
 	$(foreach other,2b 22 23,$(call checkdifferent_fn, ${other}))
 
-checksame:
+checksame :
+	@echo "Let's see how similar it is..."
 	$(DIFF) $(BUILD_EXEC)/2b $(BUILD_EXEC)/22
 	$(DIFF) $(BUILD_EXEC)/22 $(BUILD_EXEC)/23
 	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
-pdf:
+dvi :
 	@echo "Building the PDF may fail if you don't have no installed properly."
-	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" doc
+	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" dvi
 
-install: installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
+install : installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
 	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(BIN) $(addprefix $(BUILD_EXEC)/c/,no nwmtime)
 	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(LIBEXEC) $(wildcard $(BUILD_EXEC)/lua/*)
 	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
 	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
-clean:
+clean :
 	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
 	-$(RMDIR) $(BUILD_EXEC)/tools
 
@@ -231,7 +234,7 @@ clean:
 
 
 
-clobber: clean
+clobber : clean
 	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clobber
 	-$(RMDIR) $(BUILD_EXEC)/c
 
