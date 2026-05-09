@@ -65,8 +65,9 @@ LUA_VERSION = 2
 
 
 # Stop editing. No user-serviceable parts below.
-.EXPORT_ALL_VARIABLES :
-.PHONY : Makefile help all transfer installdirs tools ciilib lualib lualib3 code scripts styles careful transfer checkclean checkdifferent checksame dvi install clean clobber
+.EXPORT_ALL_VARIABLES:
+Makefile:: ;
+.PHONY: help all transfer installdirs tools ciilib lualib lualib3 code scripts styles careful transfer checkclean checkdifferent checksame dvi install clean clobber
 
 # help-helper = @printf "%s: %s\n" $1 $2; printf "%s\n" "$(value ${1})";
 help :
@@ -163,7 +164,7 @@ careful :
 	$(MAKE) clobber all clean
 	-rm -rf $(BUILD_EXEC)/first
 	# mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
-	mkinstalldirs $(BUILD_EXEC)/first/{c,lua,tex}
+	$(srcdir)/mkinstalldirs $(BUILD_EXEC)/first/{c,lua,tex}
 	cp -R $(BUILD_EXEC)/c/* $(BUILD_EXEC)/first/c
 	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
 	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
@@ -188,32 +189,35 @@ careful :
 
 
 define with_m_make_n
-$(foreach t,clobber tools ciilib $(if $(findstring "2",${2}),"lualib","lualib3"),$(MAKE) ${t})
-$(foreach d,$(addprefix $(BUILD_EXEC)/,c lua tex ${1}${2} ${1}${2}/c ${1}${2}/lua ${1}${2}/tex), mkdir ${d})
+@printf "With Rammel with embedded Lua %s, making Rammel with embeded Lua %s...\n" $(if $(findstring "2",$(1)),"2.5.1","3.2.2") $(if $(findstring "2",${1}),"2.5.1","3.2.2")
+$(MAKE) -C $(srcdir) clobber tools ciilib $(if $(findstring "2",${2}),lualib,lualib3)
+$(srcdir)/mkinstalldirs $(BUILD_EXEC)/{,${1}${2}/}{c,lua,tex}
 $(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0") "OUTPUT=$(BUILD_EXEC)/c"
 $(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 $(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
-$(MAKE) -C $(srcdir)/c doc "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
-$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/${1}${2}/${d})
+$(MAKE) -C $(srcdir)/c dvi "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
+$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/${1}${2}/${d}; )
 endef
 
+
 transfer:
-# noweb_2_11b->Rammel with Lua 2
-	$(MAKE) clobber all
-	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
-	$(foreach d,$(addprefix $(BUILD_EXEC)/,2b 2b/c 2b/lua 2b/tex), mkdir ${d})
-	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/2b/${d})
+	@echo "With noweb 2.11b, making Rammel with embeded Lua 2.5.1..."
+	$(MAKE) -C $(srcdir) clobber all
+	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c" dvi
+	$(srcdir)/mkinstalldirs $(BUILD_EXEC)/2b/{c,lua,tex}
+	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/2b/${d}; )
 
 
 
-# noweb_2_11b->Rammel with Lua 3
-	$(foreach t,clobber tools ciilib lualib3,$(MAKE) ${t})
-	$(foreach d,$(addprefix $(BUILD_EXEC)/,c lua tex 3b 3b/c 3b/lua 3b/tex), mkdir ${d})
-	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-3.0" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(BUILD_EXEC)/c"
-	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
-	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(LIBEXEC)/tools/markup | $(LIBEXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
-	$(MAKE) -C $(srcdir)/c doc "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
-	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/3b/${d})
+	@echo "With noweb 2.11b, making Rammel with embeded Lua 3.2.2..."
+	$(MAKE) -C $(srcdir) clobber tools ciilib lualib3
+	$(srcdir)/mkinstalldirs $(BUILD_EXEC)/{,3b/}{c,lua,tex}
+# TODO: understand the intended use of LUALIB; this vexes me.
+	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=${srcdir}/lua-3.2.2" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(BUILD_EXEC)/c"
+	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
+	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+	$(MAKE) -C $(srcdir)/c dvi "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
+	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/3b/${d}; )
 
 
 

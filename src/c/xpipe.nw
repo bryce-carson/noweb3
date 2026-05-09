@@ -73,6 +73,11 @@ extern T    XPipe_connect      (T left, T right);
 extern void XPipe_print        (FILE* fp, T pipeline);
 <<header ((lua2))>>=
 extern int  XPipe_run      (T pipeline, FILE *in, FILE *out);
+@
+
+\texttt{2026-05-09T02:14}: there is no corresponding definition to the lua3
+header; why am I seeing something different than David? Is this work in progress?
+
 <<header ((lua3))>>=
 extern int  XPipe_run      (T pipeline);
 <<header>>=
@@ -390,6 +395,7 @@ waiting for it.  The [[infd]] parameter is initially 0 ([[stdin]])
 because we want the first stage of the pipeline to read from
 [[stdin]]. The [[pipefds]] parameter is NULL because there are no file
 descriptors to close at the time of the first call to [[forkPipelineFrom]].
+
 <<Unix functions>>=
 int XPipe_run(XPipe_T pipeline, FILE *infp, FILE *outfp) {
 #if 0
@@ -399,11 +405,13 @@ int XPipe_run(XPipe_T pipeline, FILE *infp, FILE *outfp) {
     forkPipelineFrom(pipeline->stages, fileno(infp), fileno(outfp), NULL));
 }
 @
+
 For an internal node, we fork a child, which in turn forks its left
 and right children and waits for them.  For the case in which this is
 the last internal node, the [[outfd]] parameter in [[forkStageTo]] is
 set to 1 ([[stdout]]) so that the last program may pass its results to
 [[stdout]].
+
 <<Unix functions>>=
 static int forkPipelineFrom(List_T l, int infd, int outfd, int *surplus) {
   struct XPipe_T pl;
@@ -447,6 +455,7 @@ static int forkStageTo(struct XPipe_Stage *stage, int outfd, int *pipefds) {
   }
 }
 @ 
+
 <<execute [[stage]] and cause process to exit with suitable status>>=
 switch (stage->tag) {
   case Prog:
@@ -474,6 +483,7 @@ of arguments is allocated, then [[prog->name]] and [[prog->argv]] are
 copied onto it.  It is not necessary to free this memory because a
 call to [[execve]] will follow immediately, resulting in completion of
 the program by either successful execution or a Noweb fatal error.
+
 <<make [[new_argv]] be [[prog->path]] followed by [[argv]]>>=
 {
   int i, n;
@@ -486,7 +496,9 @@ the program by either successful execution or a Noweb fatal error.
   new_argv[n + 1] = NULL;
 }
 @ 
+
 The program is looked up from each directory in the PATH, in order.
+
 <<lookup [[prog->path]] on PATH and execute>>=
 { char *pathstring = getenv("PATH");
   List_T path;
@@ -500,6 +512,7 @@ The program is looked up from each directory in the PATH, in order.
   };
 } 
 @ 
+
 The first two helper functions, [[waitfor]] and [[waitfor2]], return the
 exit status of a child process or a pair of child processes, respectively,
 that function is to wait for.  If an unexpected process terminates before
@@ -507,6 +520,7 @@ one of the awaited processes, then the functions return an error and abort.
 Note that this might happen if, for example, another process forks a
 child, doesn't wait for it, and then execs Noweb.%
 \footnote{Thank you, Russ Cox.}
+
 <<Unix run-program functions>>=
 #include <sys/wait.h>
 
