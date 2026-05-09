@@ -19,10 +19,10 @@ $(OUTPUT)/tie: $(OUTPUT)/tie.o
 	$(CC) -o$@ $(LDFLAGS) $^
 
 clean:
-	-$(RM) $(OBJS)
+	-rm -f $(OBJS)
 
 clobber: clean
-	-$(RM) $(addprefix $(OUTPUT)/,markup nocond nt tie)
+	-rm -f $(addprefix $(OUTPUT)/,markup nocond nt tie)
 
 $(OUTPUT)/columns.o:	columns.c columns.h
 	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ columns.c

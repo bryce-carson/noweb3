@@ -3,17 +3,21 @@ srcdir ?= .
 ## System calls
 PIPE ?= fork
 
-## Paths
-BIN ?= /usr/bin
-LIBEXEC ?= /usr/libexec/rammel
-TEXINPUTS ?= /usr/share/texlive/texmf-local/tex/latex/rammel
-SHELL ?= /usr/bin/bash
+## Paths (defaulting to Fedora paths)
+PREFIX ?= /usr
+BIN ?= $(PREFIX)/bin
+LIBEXEC ?= $(PREFIX)/libexec/rammel
+TEXINPUTS ?= $(PREFIX)/share/texlive/texmf-local/tex/latex/rammel
+SHELL ?= $(PREFIX)/bin/bash
 
 ## Compiler, linker-loader, and archiver options
 ## Compiler
 CC ?= gcc
 CFLAGS ?= -ansi -pedantic -std=c11 -c
 XCFLAGS ?= 
+## FIXME: these are fragile! Hack on all of these so a sigle definition can be
+## used: POSIX; NWDEFAULTDIR is required on all systems, but POSIX alone should
+## be sufficient compared to PLATFORM, POSIX, _POSIX_SOURCE, and nw_unix!
 CPPFLAGS ?= -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -Dnw_unix
 ## Linker-loader
 LD ?= gcc
@@ -45,40 +49,70 @@ INSTALL ?= install
 INSTALL_PROGRAM ?= $(INSTALL)
 INSTALL_DATA ?= $(INSTALL) -m 644
 
-BUILDDIR ?= $(srcdir)/../build
+BUILDDIR ?= $(realpath $(srcdir)/../build)
 VPATH  ?= $(BUILDDIR)
 
 BUILD_EXEC ?= $(BUILDDIR)$(LIBEXEC)
+$(srcdir)/mkinstalldirs:: ;
 BUILD ?= $(srcdir)/mkinstalldirs | $(BUILD_EXEC)
 
 NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
 LUA_VERSION = 2
 
+
+
+
+
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES :
-.PHONY : help transfer install pdf
+.PHONY : Makefile help all transfer installdirs tools ciilib lualib lualib3 code scripts styles careful transfer checkclean checkdifferent checksame dvi install clean clobber
 
+# help-helper = @printf "%s: %s\n" $1 $2; printf "%s\n" "$(value ${1})";
 help :
-	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
-	@echo "BIN (by default, \"$(BIN)\"): The installation location for user programs."
-	@echo "LIBEXEC (by default, \"$(LIBEXEC)\"): The installation location for programs used only by user programs."
-	@echo "TEXINPUTS (by default, \"$(TEXINPUTS)\"): The installation location for LaTeX and TeX style and class files."
-	@echo "SHELL (by default, \"$(SHELL)\"): The shell to use when invoking recipe rules."
-	@echo "CC (by default, \"$(CC)\"): The command to invoke a C compiler."
-	@echo "CFLAGS (by default, \"$(CFLAGS)\"): C compilation flags."
-	@echo "XCFLAGS (by default, \"$(XCFLAGS)\"): Additional C compilation flags specific to the compilation of no''"
-	@echo "LD (by default, \"$(LD)\"): The command to invoke a C linker-loader."
-	@echo "LIBPROLOGUE (by default, \"$(LIBPROLOGUE)\"): Anything that should precede LDFLAGS when invoking the linker-loader."
-	@echo "LDFLAGS (by default, \"$(LDFLAGS)\"): C linker-loader flags."
-	@echo "LIBEPILOGUE (by default, \"$(LIBEPILOGUE)\"): Anything that should succeed LDFLAGS when invoking the linker-loader."
-	@echo "AR (by default, \"$(AR)\"): The command to invoke a C archiver."
-	@echo "RANLIB (by default, \"$(RANLIB)\"): The command to invoke ranlib."
-	@echo "CIIMAXALIGN (by default, \"$(CIIMAXALIGN)\"): The value for maximum alignment used when compiling CII; see CIIs index.html for more information."
-	@echo "XINCLUDES (by default, \"$(XINCLUDES)\"): Additional libraries to include when compiling the no' command.'"
-	@echo "POPEN (by default, \"$(POPEN)\"): TODO: document this option."
-	@echo "POSIX (by default, \"$(POSIX)\"): Whether or not this system is POSIX-compliant."
-	@echo "STRERROR (by default, \"$(STRERROR)\"): TODO: document this option."
+# 	$(call help-helper,PIPE,What system call should Rammel use?)
+
+# 	@echo "==========================================================="
+# 	@echo "Paths (defaults designed for a user-installation on Fedora)"
+# 	@echo "==========================================================="
+# 	$(call help-helper,PREFIX,The installation prefix to use.)
+# 	$(call help-helper,BIN,The installation location for user programs.)
+# 	$(call help-helper,LIBEXEC,The installation location for programs used only by user programs.)
+# 	$(call help-helper,TEXINPUTS,The installation location for LaTeX and TeX style and class files.)
+# 	$(call help-helper,SHELL,The shell to use when invoking recipe rules.)
+
+# 	@echo "============================================="
+# 	@echo "Compiler, linker-loader, and archiver options"
+# 	@echo "============================================="
+# 	@echo "Compiler"
+# 	@echo "--------"
+# 	$(call help-helper,CC,The command to invoke a C compiler.)
+# 	$(call help-helper,CFLAGS,C compilation flags.)
+# 	$(call help-helper,XCFLAGS,Additional C compilation flags specific to the compilation of 'no'.)
+# 	$(call help-helper,CPPFLAGS,C preprocessor flags.)
+
+# 	@echo "Linker-loader"
+# 	@echo "-------------"
+# 	$(call help-helper,LD,The command to invoke a C linker-loader.)
+# 	$(call help-helper,LIBPROLOGUE,Anything that should precede LDFLAGS when invoking the linker-loader.)
+# 	$(call help-helper,LDFLAGS,C linker-loader flags.)
+# 	$(call help-helper,LIBEPILOGUE,Anything that should succeed LDFLAGS when invoking the linker-loader.)
+
+# 	@echo "Archiver and its options"
+# 	@echo "------------------------"
+# 	$(call help-helper,AR,Archive-maintaining program.)
+# 	$(call help-helper,ARFLAGS,Flags to give the archive-maintaining program.)
+# 	$(call help-helper,RANLIB,The command to invoke ranlib.)
+
+# 	$(call help-helper,CIIMAXALIGN,The value for maximum alignment used when compiling CII; see CIIs index.html for more information.)
+
+# 	$(call help-helper,XINCLUDES,Additional libraries to include when compiling the 'no' command.)
+
+# 	$(call help-helper,POPEN,document this option.)
+# 	$(call help-helper,POSIX,Whether or not this system is POSIX-compliant.)
+# 	$(call help-helper,STRERROR,document this option.)
+
+# 	$(call help-helper,LUA_VERSION,The Lua version to use.)
 
 all : code scripts styles
 
@@ -100,8 +134,12 @@ lualib : $(BUILD)
 lualib3 : $(BUILD)
 	$(MAKE) -C $(srcdir)/lua-3.2.2 "OUTPUT=$(BUILD_EXEC)/lua-3.2.2"
 
-TANGLEOPTS = " | $(addprefix $(BUILD_EXEC)/tools/,markup nt)"
-code: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+
+
+
+
+TANGLEOPTS =  | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt
+code: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
 code : tools ciilib lualib
 	$(MAKE) -C $(srcdir)/c                      \
         "NOTANGLE=more"                       \
@@ -111,18 +149,21 @@ code : tools ciilib lualib
         "LUA=../$(LUA_VERSION)"               \
         "LUALIB=$(BUILD_EXEC)/$(LUA_VERSION)" \
         "OUTPUT=$(BUILD_EXEC)/c"
-
-scripts: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+scripts: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
 scripts : tools
 	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
-
 styles : tools
 	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
+
+
+
+
 careful :
 	$(MAKE) clobber all clean
-	-$(RMDIR) $(BUILD_EXEC)/first
-	mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
+	-rm -rf $(BUILD_EXEC)/first
+	# mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
+	mkinstalldirs $(BUILD_EXEC)/first/{c,lua,tex}
 	cp -R $(BUILD_EXEC)/c/* $(BUILD_EXEC)/first/c
 	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
 	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
@@ -136,9 +177,6 @@ careful :
 
 	-mkdir $(LIBEXEC)/tex
 	$(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
-
-	@echo "At this point we are attempting to BUILD the literate version."
-	@echo "It may fail if you have not previously installed noweb.sty."
 
 	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
 	-$(RMDIR) $(BUILD_EXEC)/first
@@ -208,7 +246,6 @@ checksame :
 	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
 dvi :
-	@echo "Building the PDF may fail if you don't have no installed properly."
 	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" dvi
 
 install : installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
@@ -217,29 +254,13 @@ install : installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DES
 	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
 	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
+
+
+
+soap = $(MAKE) --silent -C $(srcdir)/$(1) "OUTPUT=${BUILD_EXEC}/${1}" $(2);
 clean :
-	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
-	-$(RMDIR) $(BUILD_EXEC)/tools
-
-	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii" clobber
-	-$(RMDIR) $(BUILD_EXEC)/cii
-
-	$(MAKE) -C $(srcdir)/lua-2.5 $(LuaMakefile) "OUTPUT=$(BUILD_EXEC)/lua-2.5" clobber
-	-$(RMDIR) $(BUILD_EXEC)/lua-2.5
-
-	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clean
-	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clean
-	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(BUILD_EXEC)/tex" clean
-	-$(RM) *~
-
-
+	$(foreach d,c lua tools cii,$(call soap,$(d),clean))
 
 clobber : clean
-	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clobber
-	-$(RMDIR) $(BUILD_EXEC)/c
-
-	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clobber
-	-$(RMDIR) $(BUILD_EXEC)/lua
-
-	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(BUILD_EXEC)/tex" clobber
-	-$(RMDIR) $(BUILD_EXEC)/tex
+	$(foreach d,c lua tools cii,$(call soap,$(d),clobber))
+	rm -f *~

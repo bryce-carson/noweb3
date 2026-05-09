@@ -1,16 +1,25 @@
-INCS = $(addprefix -I$(srcdir)/,c cii/include)
+INCS = $(foreach d,c cii/include, -I$(abspath $(srcdir)/${d}))
+
+
 
 ifeq ($(LUA_VERSION),2)
-LUA_VERSION=lua-2.5.1
-INCS += -I$(LUA_VERSION)
+LUA_VERSION = lua-2.5.1
+INCS += -I$(abspath $(srcdir)/$(LUA_VERSION))
+
 else ifeq ($(LUA_VERSION),3)
-LUA_VERSION=lua-3.2.2
-INCS += -I$(LUA)/include
+LUA_VERSION = lua-3.2.2
+INCS += -I$(abspath $(srcdir)/$(LUA_VERSION)/include)
+
 else ifeq ($(LUA_VERSION),5)
-LUA_VERSION=lua-5.5.0
+LUA_VERSION = lua-5.5.0
+INCS += -I$(abspath $(srcdir)/$(LUA_VERSION)/src)
+
 else
-$(error "LUA_VERSION must be one of 2, 3, or 5.")
+$(error "LUA_VERSION must be one of 2, 3, or 5 to select 2.5.1, 3.2.2, or 5.5.0 respectively.")
+
 endif
+
+
 
 NOOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns cpif env-lua errors       \
 finduses fromascii getline ipipe ipipe-lua lua-help lua-main main markparse    \
@@ -19,6 +28,8 @@ nwbuffer-lua nwprocess nwtime recognize stages strsave sys util xpipe          \
 xpipe-lua))
 
 NWMTIMEOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns errors getline nwmtime))
+
+
 
 # Sources to build when distributing C code (add all generated .c and .h files
 # to this list)
@@ -33,15 +44,22 @@ nwprocess.c nwprocess.h nwtime.c nwtime.h precompiled.h recognize.c recognize.h\
 stages.c stages.h strsave.c strsave.h sys.c sys.h util.c util.h xpipe-lua.c    \
 xpipe-lua.h xpipe.c xpipe.h)
 
+
+
+all : $(OUTPUT)/no $(OUTPUT)/nwmtime
+
+
+
 CFLAGS += -g
 
 # Define a metarule so rules aren't needed for each object file.
 .c.o : ;
 	$(CC) $(INCS) $(CFLAGS) $(CPPFLAGS) -o $@ $*.c
 
-all : $(OUTPUT)/no $(OUTPUT)/nwmtime
-
 dvi : $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
+	@echo "Building the literate program and user documentation..."
+	@echo "Building the literate program will likey fail if you have not built and installed the installed the program already."
+	@echo "Building the literate program and user documentation requires John Collins' latexmk."
 	latexmk -output-directory=$(OUTPUT) $(OUTPUT)/doc.tex
 
 $(OUTPUT)/nwmtime : $(NWMTIMEOBJS)
@@ -55,10 +73,10 @@ touch : $(SRCS)
 	touch $(SRCS)
 
 clean :
-	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
+	-rm -f $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
 clobber : clean
-	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
+	-rm -f $(addprefix $(OUTPUT)/,no nwmtime doc.dvi)
 
 $(OUTPUT)/doc.tex : doc.nw
 	cp doc.nw $@
@@ -67,7 +85,6 @@ FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua    
 lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle  \
 nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe                       \
 xpipe-lua)
-
 $(OUTPUT)/allcode.tex : $(FILES)
 	no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 

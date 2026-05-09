@@ -10,7 +10,7 @@ all : $(CONFIG) $(STAGES) $(SCRIPTS)
 clean :
 
 clobber : clean
-	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
+	-rm -f $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
 
 ## LIB2 is the directory where external stanges from Noweb 2 are located; LIB3
 ## is where stages of Noweb 3 are located. LIB2 and LIB3 do not relate to Lua 2

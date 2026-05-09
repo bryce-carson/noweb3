@@ -1,79 +1,103 @@
 #+TITLE: Rammel
 #+AUTHOR: Bryce Carson
 
-* Grok help                                                         :ARCHIVE:
-*Minimal changes needed:*
-
-- Use POSIX-style paths (=/=) and Unix commands (=rm=, =mkdir=, etc.).
-  No accommodation for Windows =\= separators required.
-
-- Detect environment if needed:
-
-  #+begin_src make
-  ifeq ($(OS),Windows_NT)
-    # optional Windows-specific rules
-  else
-    # POSIX (MSYS2)
-  endif
-  #+end_src
-
-- For executables: add =.exe= suffix when targeting native MinGW builds
-  (e.g., =TARGET = myprog$(EXE)= where =EXE=.exe= on Windows).
-
-MSYS2 make in Git for Windows SDK behaves like Unix make.
-
-* Dependencies                                                      :ARCHIVE:
-On Windows, building requires the full /Git for Windows SDK/ installed, not just
-/Git for Windows/. This allows Windows users to use MSYS2 to build Arch
-packages, in particular the =make= package with Guile support. =make= on MSYS2
-enables native Windows development using GNU Make makefiles without compromising
-on syntax or overusing text replacement macros to provide compatibility with
-Windows path separators and other oddities.
-
-Everything I was writing in Premake is moving back into Make, but with the Guile
-feature so I can rewrite the helper functions I wrote in Lua in Guile and use
-that to simplify the makefile.
-
-Make supports Guile Scheme as an embedded extension language since version 4.0,
-but many distributions do not build Make with this feature by default.
-
-*** Fedora
-Fedora no longer builds /GNU make/ with Guile enabled by default, so I needed to
-rebuild the package with the Guile feature enabled.
-
-#+begin_src bash
-  dnf download --srpm make
-  dnf install 'pkgconfig(guile-3.0)' perl# perhaps also perl-devel and guile-devel
-  rpmbuild -ba make.spec --with guile
-  rpmbuild -ba --with guile
-#+end_src
-
-*** Arch & Windows (with the /Git for Window SDK/)
-The full SDK version of Git for Windows shall be required, as the new
-makefile utilizes GUILE to simplify some build steps that were
-difficult.
-
-1. =pacman -S --needed base-devel guile-devel=.
-2. =git clone https://github.com/msys2/MSYS2-packages.git && cd MSYS2-packages/make=.
-3. Edit =PKGBUILD=: remove =--without-guile= (or add =--with-guile=) from =configure= line.
-4. =makepkg -s --noconfirm=.
-5. =pacman -U make-*.pkg.tar.zst=.
-
-* About
-This is a working file only. It is not documentation for Rammel.
-
-#+begin_quote
-With this change you will have .cfg files for configuration and shared
-functions, .nws files for stages and internal filters, and extensionless files
-for commands.
-#+end_quote
-
-It's my goal to edify myself by translating into Lua 5.5 the filters and stages
-which were previously translated by Zitzelsberger from lua2.5+nw into Lua 3.
-
 I will be calling this derived work Rammel. In the future, especially if all
 development goals are met, I'll send Ramsey another postcard to ask about
 calling it noweb and getting the changes merged.
+
+* README and shell scripts
+
+#+name: runner
+#+begin_src bash
+  rammel=~/src/rammel
+  function make-rammel {
+      test "build" = $(basename $(pwd))
+      make --file=../src/Makefile srcdir=../src BUILDDIR=$(pwd) $1
+  }
+  cd $rammel
+  test -d build
+  rm -rf build
+  mkdir build
+  cd build
+  make-rammel all && sudo make-rammel install && make-rammel pdf
+  cd $rammel
+#+end_src
+
+#+begin_src markdown :noweb no-export :tangle README.md
+  <!-- -*- mode: markdown; -*- -->
+  Rammel is:
+
+  > *Noweb version 3* with a lot of changes; and
+  >
+  > © 2026 Bryce Carson.
+
+  Rammel is a copyrighten work ultimately derived from [Norman Ramsey's *noweb* version 3](https://github.com/nrnrnr/noweb3), a copyrighten work. Noweb is available free of charge. Reports of software bugs in Rammel are welcomed using the GitHub Issues feature.
+
+  Rammel is available free of charge for any use in any field of endeavor. The *original `COPYRIGHT` file **contents*** of Norman Ramsey's noweb version 3 are quoted below; Rammel is a derivative work with its own name, so the COPYRIGHT file needn't be retained, only the notice below.
+
+  > Noweb is copyright 1989-2015 by Norman Ramsey.  All rights reserved.
+  >
+  > Noweb is protected by copyright.  It is not public-domain
+  > software or shareware, and it is not protected by a ``copyleft''
+  > agreement like the one used by the Free Software Foundation.
+  >
+  > Noweb is available free for any use in any field of endeavor.  You may
+  > redistribute noweb in whole or in part provided you acknowledge its
+  > source and include this COPYRIGHT file.  You may modify noweb and
+  > create derived works, provided you retain this copyright notice, but
+  > the result may not be called noweb without my written consent.
+  >
+  > You may sell noweb if you wish.  For example, you may sell a CD-ROM
+  > including noweb.
+  >
+  > You may sell a derived work, provided that all source code for your
+  > derived work is available, at no additional charge, to anyone who buys
+  > your derived work in any form.  You must give permisson for said
+  > source code to be used and modified under the terms of this license.
+  > You must state clearly that your work uses or is based on noweb and
+  > that noweb is available free of change.  You must also request that
+  > bug reports on your work be reported to you.
+  >
+  > If this license does not meet your needs, write to nr@cs.tufts.edu
+  > to discuss terms.
+  >
+  > Noweb version 3 incorporates elements of Lua version 2.5 and CII
+  > version 1.11, both used by permission.
+
+  You are given permission to use Rammel similarly.
+
+  # Components
+  Rammel uses:
+
+  - any of [**PUC Rio's** *Lua 2.5.1*, *Lua 3.2.2*, or *Lua 5.5.0*](https://www.lua.org/);
+  - the same subselection of interfaces and implementations from [**Dave Hanson's** *C Interfaces and Implementations*](https://drh.github.io/cii/) as used in the original noweb version 3;
+  - [***GNU** Make*](https://www.gnu.org/software/make/) for building Rammel from sources;
+  - mkinstalldirs, a public domain script available in [*Gnulib*](https://www.gnu.org/software/gnulib/).
+
+  Rammel is derived from [David Zitzelsberger's modified version of noweb version 3](https://github.com/dazitzel/noweb3), and David deserves all credit for the work of converting the filters and stages written in Ramseys's custom *lua2.5+nw* to standard *Lua 2.5* an standard *Lua 3* syntax.
+
+  # Building Rammel from Sources
+  ## UNIX or GNU
+  Requirements: GNU Make; Rammel sources. The Makefiles for each component of the software have been written with features of GNU Make not available in other implementations of Make.
+
+  First, configure the build by modifying the variables in `src/Makefile`.
+
+  Second, call `make all`, using `src/Makefile` as the makefile, set the variable `srcdir` to `src`, and set `BUILDDIR` to a build directory.
+
+  I use the following BASH script to build the software, install it, and generate the documentation. The current usage of a `BUILDDIR` and `srcdir` variable is really clunky and on my TODO list to improve. For now, it works.
+
+  ```bash
+  <<runner>>
+  ```
+
+  ## Windows
+  Utilize WSL 2 and install any Linux distribution you prefer, then install the packages required for GNU Make and the GNU Compiler Collection (GCC).
+
+  I won't take the time to make the GNU Makefile compatible with MSYS2 UCRT so that native EXEs and DLLs can be produced; if you'd like to contribute towards this you're welcome to, but instead I highely recommend pursuing use of WSL 2.
+
+  # Documentation
+  Rammel's documentation is a work in progress, and is, of course, derived from the documentation of noweb version 3. Contributions and suggestions are welcome.
+#+end_src
 
 * Makefiles
 These makefiles direct the compilation of the two main targets, /no/ and
@@ -89,17 +113,21 @@ The top-level makefile parses the make command-line options and validates them.
   ## System calls
   PIPE ?= fork
 
-  ## Paths
-  BIN ?= /usr/bin
-  LIBEXEC ?= /usr/libexec/rammel
-  TEXINPUTS ?= /usr/share/texlive/texmf-local/tex/latex/rammel
-  SHELL ?= /usr/bin/bash
+  ## Paths (defaulting to Fedora paths)
+  PREFIX ?= /usr
+  BIN ?= $(PREFIX)/bin
+  LIBEXEC ?= $(PREFIX)/libexec/rammel
+  TEXINPUTS ?= $(PREFIX)/share/texlive/texmf-local/tex/latex/rammel
+  SHELL ?= $(PREFIX)/bin/bash
 
   ## Compiler, linker-loader, and archiver options
   ## Compiler
   CC ?= gcc
   CFLAGS ?= -ansi -pedantic -std=c11 -c
   XCFLAGS ?= 
+  ## FIXME: these are fragile! Hack on all of these so a sigle definition can be
+  ## used: POSIX; NWDEFAULTDIR is required on all systems, but POSIX alone should
+  ## be sufficient compared to PLATFORM, POSIX, _POSIX_SOURCE, and nw_unix!
   CPPFLAGS ?= -DNWDEFAULTDIR=\"'$(LIBEXEC)'\" -DPLATFORM='$(PLATFORM)' -DPOSIX -D_POSIX_SOURCE -Dnw_unix
   ## Linker-loader
   LD ?= gcc
@@ -131,40 +159,70 @@ The top-level makefile parses the make command-line options and validates them.
   INSTALL_PROGRAM ?= $(INSTALL)
   INSTALL_DATA ?= $(INSTALL) -m 644
 
-  BUILDDIR ?= $(srcdir)/../build
+  BUILDDIR ?= $(realpath $(srcdir)/../build)
   VPATH  ?= $(BUILDDIR)
 
   BUILD_EXEC ?= $(BUILDDIR)$(LIBEXEC)
+  $(srcdir)/mkinstalldirs:: ;
   BUILD ?= $(srcdir)/mkinstalldirs | $(BUILD_EXEC)
 
   NOCOND ?= $(BUILD_EXEC)/tools/nocond
 
   LUA_VERSION = 2
 
+
+
+
+
   # Stop editing. No user-serviceable parts below.
   .EXPORT_ALL_VARIABLES :
-  .PHONY : help transfer install pdf
+  .PHONY : Makefile help all transfer installdirs tools ciilib lualib lualib3 code scripts styles careful transfer checkclean checkdifferent checksame dvi install clean clobber
 
+  # help-helper = @printf "%s: %s\n" $1 $2; printf "%s\n" "$(value ${1})";
   help :
-  	@echo "PIPE (by default, \"$(PIPE)\"): What system call should Rammel use? fork | pipe"
-  	@echo "BIN (by default, \"$(BIN)\"): The installation location for user programs."
-  	@echo "LIBEXEC (by default, \"$(LIBEXEC)\"): The installation location for programs used only by user programs."
-  	@echo "TEXINPUTS (by default, \"$(TEXINPUTS)\"): The installation location for LaTeX and TeX style and class files."
-  	@echo "SHELL (by default, \"$(SHELL)\"): The shell to use when invoking recipe rules."
-  	@echo "CC (by default, \"$(CC)\"): The command to invoke a C compiler."
-  	@echo "CFLAGS (by default, \"$(CFLAGS)\"): C compilation flags."
-  	@echo "XCFLAGS (by default, \"$(XCFLAGS)\"): Additional C compilation flags specific to the compilation of no''"
-  	@echo "LD (by default, \"$(LD)\"): The command to invoke a C linker-loader."
-  	@echo "LIBPROLOGUE (by default, \"$(LIBPROLOGUE)\"): Anything that should precede LDFLAGS when invoking the linker-loader."
-  	@echo "LDFLAGS (by default, \"$(LDFLAGS)\"): C linker-loader flags."
-  	@echo "LIBEPILOGUE (by default, \"$(LIBEPILOGUE)\"): Anything that should succeed LDFLAGS when invoking the linker-loader."
-  	@echo "AR (by default, \"$(AR)\"): The command to invoke a C archiver."
-  	@echo "RANLIB (by default, \"$(RANLIB)\"): The command to invoke ranlib."
-  	@echo "CIIMAXALIGN (by default, \"$(CIIMAXALIGN)\"): The value for maximum alignment used when compiling CII; see CIIs index.html for more information."
-  	@echo "XINCLUDES (by default, \"$(XINCLUDES)\"): Additional libraries to include when compiling the no' command.'"
-  	@echo "POPEN (by default, \"$(POPEN)\"): TODO: document this option."
-  	@echo "POSIX (by default, \"$(POSIX)\"): Whether or not this system is POSIX-compliant."
-  	@echo "STRERROR (by default, \"$(STRERROR)\"): TODO: document this option."
+  # 	$(call help-helper,PIPE,What system call should Rammel use?)
+
+  # 	@echo "==========================================================="
+  # 	@echo "Paths (defaults designed for a user-installation on Fedora)"
+  # 	@echo "==========================================================="
+  # 	$(call help-helper,PREFIX,The installation prefix to use.)
+  # 	$(call help-helper,BIN,The installation location for user programs.)
+  # 	$(call help-helper,LIBEXEC,The installation location for programs used only by user programs.)
+  # 	$(call help-helper,TEXINPUTS,The installation location for LaTeX and TeX style and class files.)
+  # 	$(call help-helper,SHELL,The shell to use when invoking recipe rules.)
+
+  # 	@echo "============================================="
+  # 	@echo "Compiler, linker-loader, and archiver options"
+  # 	@echo "============================================="
+  # 	@echo "Compiler"
+  # 	@echo "--------"
+  # 	$(call help-helper,CC,The command to invoke a C compiler.)
+  # 	$(call help-helper,CFLAGS,C compilation flags.)
+  # 	$(call help-helper,XCFLAGS,Additional C compilation flags specific to the compilation of 'no'.)
+  # 	$(call help-helper,CPPFLAGS,C preprocessor flags.)
+
+  # 	@echo "Linker-loader"
+  # 	@echo "-------------"
+  # 	$(call help-helper,LD,The command to invoke a C linker-loader.)
+  # 	$(call help-helper,LIBPROLOGUE,Anything that should precede LDFLAGS when invoking the linker-loader.)
+  # 	$(call help-helper,LDFLAGS,C linker-loader flags.)
+  # 	$(call help-helper,LIBEPILOGUE,Anything that should succeed LDFLAGS when invoking the linker-loader.)
+
+  # 	@echo "Archiver and its options"
+  # 	@echo "------------------------"
+  # 	$(call help-helper,AR,Archive-maintaining program.)
+  # 	$(call help-helper,ARFLAGS,Flags to give the archive-maintaining program.)
+  # 	$(call help-helper,RANLIB,The command to invoke ranlib.)
+
+  # 	$(call help-helper,CIIMAXALIGN,The value for maximum alignment used when compiling CII; see CIIs index.html for more information.)
+
+  # 	$(call help-helper,XINCLUDES,Additional libraries to include when compiling the 'no' command.)
+
+  # 	$(call help-helper,POPEN,document this option.)
+  # 	$(call help-helper,POSIX,Whether or not this system is POSIX-compliant.)
+  # 	$(call help-helper,STRERROR,document this option.)
+
+  # 	$(call help-helper,LUA_VERSION,The Lua version to use.)
 
   all : code scripts styles
 
@@ -186,8 +244,12 @@ The top-level makefile parses the make command-line options and validates them.
   lualib3 : $(BUILD)
   	$(MAKE) -C $(srcdir)/lua-3.2.2 "OUTPUT=$(BUILD_EXEC)/lua-3.2.2"
 
-  TANGLEOPTS = " | $(addprefix $(BUILD_EXEC)/tools/,markup nt)"
-  code: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+
+
+
+
+  TANGLEOPTS =  | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt
+  code: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
   code : tools ciilib lualib
   	$(MAKE) -C $(srcdir)/c                      \
           "NOTANGLE=more"                       \
@@ -197,18 +259,21 @@ The top-level makefile parses the make command-line options and validates them.
           "LUA=../$(LUA_VERSION)"               \
           "LUALIB=$(BUILD_EXEC)/$(LUA_VERSION)" \
           "OUTPUT=$(BUILD_EXEC)/c"
-
-  scripts: TANGLEOPTS = " | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)"
+  scripts: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
   scripts : tools
   	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
-
   styles : tools
   	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 
+
+
+
+
   careful :
   	$(MAKE) clobber all clean
-  	-$(RMDIR) $(BUILD_EXEC)/first
-  	mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
+  	-rm -rf $(BUILD_EXEC)/first
+  	# mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
+  	mkinstalldirs $(BUILD_EXEC)/first/{c,lua,tex}
   	cp -R $(BUILD_EXEC)/c/* $(BUILD_EXEC)/first/c
   	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
   	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
@@ -222,9 +287,6 @@ The top-level makefile parses the make command-line options and validates them.
 
   	-mkdir $(LIBEXEC)/tex
   	$(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
-
-  	@echo "At this point we are attempting to BUILD the literate version."
-  	@echo "It may fail if you have not previously installed noweb.sty."
 
   	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "OUTPUT=$(BUILD_EXEC)/c" doc
   	-$(RMDIR) $(BUILD_EXEC)/first
@@ -294,7 +356,6 @@ The top-level makefile parses the make command-line options and validates them.
   	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
   dvi :
-  	@echo "Building the PDF may fail if you don't have no installed properly."
   	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" dvi
 
   install : installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
@@ -303,32 +364,16 @@ The top-level makefile parses the make command-line options and validates them.
   	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
   	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
+
+
+
+  soap = $(MAKE) --silent -C $(srcdir)/$(1) "OUTPUT=${BUILD_EXEC}/${1}" $(2);
   clean :
-  	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools" clobber
-  	-$(RMDIR) $(BUILD_EXEC)/tools
-
-  	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii" clobber
-  	-$(RMDIR) $(BUILD_EXEC)/cii
-
-  	$(MAKE) -C $(srcdir)/lua-2.5 $(LuaMakefile) "OUTPUT=$(BUILD_EXEC)/lua-2.5" clobber
-  	-$(RMDIR) $(BUILD_EXEC)/lua-2.5
-
-  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clean
-  	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clean
-  	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(BUILD_EXEC)/tex" clean
-  	-$(RM) *~
-
-
+  	$(foreach d,c lua tools cii,$(call soap,$(d),clean))
 
   clobber : clean
-  	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" clobber
-  	-$(RMDIR) $(BUILD_EXEC)/c
-
-  	$(MAKE) -C $(srcdir)/lua "OUTPUT=$(BUILD_EXEC)/lua" clobber
-  	-$(RMDIR) $(BUILD_EXEC)/lua
-
-  	$(MAKE) -C $(srcdir)/tex "OUTPUT=$(BUILD_EXEC)/tex" clobber
-  	-$(RMDIR) $(BUILD_EXEC)/tex
+  	$(foreach d,c lua tools cii,$(call soap,$(d),clobber))
+  	rm -f *~
 #+end_src
 
 ** DONE C
@@ -337,27 +382,29 @@ This is the most important Makefile, other than the top-level makefile, as this
 consumes the output of all the others: CII; an embeddable Lua; scripts written
 in Lua.
 
-PDF compilation fails.
-
-Anyways, apparently =2= is the correct error code and something else is going on
-with the system that is preventing it from loading noweb files properly,
-especially =weave= or =tangle=! I need to compile the project with dubugging
-symbols and see what is happening when =load_nwfile= is called.
-
 #+begin_src makefile :tangle src/c/Makefile
-  INCS = $(addprefix -I$(srcdir)/,c cii/include)
+  INCS = $(foreach d,c cii/include, -I$(abspath $(srcdir)/${d}))
+
+
 
   ifeq ($(LUA_VERSION),2)
-  LUA_VERSION=lua-2.5.1
-  INCS += -I$(LUA_VERSION)
+  LUA_VERSION = lua-2.5.1
+  INCS += -I$(abspath $(srcdir)/$(LUA_VERSION))
+
   else ifeq ($(LUA_VERSION),3)
-  LUA_VERSION=lua-3.2.2
-  INCS += -I$(LUA)/include
+  LUA_VERSION = lua-3.2.2
+  INCS += -I$(abspath $(srcdir)/$(LUA_VERSION)/include)
+
   else ifeq ($(LUA_VERSION),5)
-  LUA_VERSION=lua-5.5.0
+  LUA_VERSION = lua-5.5.0
+  INCS += -I$(abspath $(srcdir)/$(LUA_VERSION)/src)
+
   else
-  $(error "LUA_VERSION must be one of 2, 3, or 5.")
+  $(error "LUA_VERSION must be one of 2, 3, or 5 to select 2.5.1, 3.2.2, or 5.5.0 respectively.")
+
   endif
+
+
 
   NOOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns cpif env-lua errors       \
   finduses fromascii getline ipipe ipipe-lua lua-help lua-main main markparse    \
@@ -366,6 +413,8 @@ symbols and see what is happening when =load_nwfile= is called.
   xpipe-lua))
 
   NWMTIMEOBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,columns errors getline nwmtime))
+
+
 
   # Sources to build when distributing C code (add all generated .c and .h files
   # to this list)
@@ -380,15 +429,22 @@ symbols and see what is happening when =load_nwfile= is called.
   stages.c stages.h strsave.c strsave.h sys.c sys.h util.c util.h xpipe-lua.c    \
   xpipe-lua.h xpipe.c xpipe.h)
 
+
+
+  all : $(OUTPUT)/no $(OUTPUT)/nwmtime
+
+
+
   CFLAGS += -g
 
   # Define a metarule so rules aren't needed for each object file.
   .c.o : ;
   	$(CC) $(INCS) $(CFLAGS) $(CPPFLAGS) -o $@ $*.c
 
-  all : $(OUTPUT)/no $(OUTPUT)/nwmtime
-
   dvi : $(OUTPUT)/doc.tex $(OUTPUT)/allcode.tex
+  	@echo "Building the literate program and user documentation..."
+  	@echo "Building the literate program will likey fail if you have not built and installed the installed the program already."
+  	@echo "Building the literate program and user documentation requires John Collins' latexmk."
   	latexmk -output-directory=$(OUTPUT) $(OUTPUT)/doc.tex
 
   $(OUTPUT)/nwmtime : $(NWMTIMEOBJS)
@@ -402,10 +458,10 @@ symbols and see what is happening when =load_nwfile= is called.
   	touch $(SRCS)
 
   clean :
-  	-$(RM) $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
+  	-rm -f $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(addprefix $(OUTPUT)/,$(wildcard nwbuffer-lua* allcode.tex doc.*))
 
   clobber : clean
-  	-$(RM) $(addprefix $(OUTPUT)/,nwmtime no doc.pdf)
+  	-rm -f $(addprefix $(OUTPUT)/,no nwmtime doc.dvi)
 
   $(OUTPUT)/doc.tex : doc.nw
   	cp doc.nw $@
@@ -414,7 +470,6 @@ symbols and see what is happening when =load_nwfile= is called.
   lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle  \
   nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe                       \
   xpipe-lua)
-
   $(OUTPUT)/allcode.tex : $(FILES)
   	no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
 
@@ -488,7 +543,7 @@ CLOSED: [2026-05-03 Sun 20:18]
   clean :
 
   clobber : clean
-  	-$(RM) $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
+  	-rm -f $(CONFIG) $(FILTERS) $(STAGES) $(SCRIPTS)
 
   ## LIB2 is the directory where external stanges from Noweb 2 are located; LIB3
   ## is where stages of Noweb 3 are located. LIB2 and LIB3 do not relate to Lua 2
@@ -603,10 +658,10 @@ built up, particularly its renewed GNU Make build system.
   	$(CC) -o$@ $(LDFLAGS) $^
 
   clean:
-  	-$(RM) $(OBJS)
+  	-rm -f $(OBJS)
 
   clobber: clean
-  	-$(RM) $(addprefix $(OUTPUT)/,markup nocond nt tie)
+  	-rm -f $(addprefix $(OUTPUT)/,markup nocond nt tie)
 
   $(OUTPUT)/columns.o:	columns.c columns.h
   	$(CC) $(CFLAGS) -I$(OUTPUT) -o$@ columns.c
@@ -641,23 +696,24 @@ CLOSED: [2026-05-03 Sun 01:14]
 I've tried to clean up this makefile.
 
 #+begin_src makefile :tangle src/cii/Makefile
-  MAXALIGN=-DMAXALIGN=$(CIIMAXALIGN)
+  OBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,arena array assert atom except fmt list mem seq str))
 
-  OBJS=$(addprefix $(OUTPUT)/,$(addsuffix .o,arena array assert atom except fmt list mem seq str))
+  .PHONY: Makefile all clean clobber
 
   all: $(OUTPUT)/libcii.so $(OUTPUT)/memchk.o
 
   $(OUTPUT)/libcii.so: $(OBJS)
   	$(AR) -rsc $@ $(OBJS)
 
+  $(srcdir)/cii/src/%.c:: ;
   $(OUTPUT)/%.o: $(srcdir)/cii/src/%.c
-  	$(CC) $(CFLAGS) -Iinclude $(MAXALIGN) $< -o $@
+  	$(CC) $(CFLAGS) -Iinclude -DMAXALIGN=${CIIMAXALIGN} $< -o $@
 
   clean:
   	-$(RM) $(OBJS)
 
   clobber:	clean
-  	-$(RM) $(OUTPUT)/libcii$A $(OUTPUT)/*.o
+  	-$(RM) $(OUTPUT)/libcii.so $(OUTPUT)/*.o
 #+end_src
 
 ** TODO Vendored Lua [2/3]
@@ -742,4 +798,113 @@ With Lua 3.2.2 being very easy to compile, I haven't had to make any changes. Ho
   	strip bin/lua*
 
 #+end_src
+
 *** TODO 5.5.0
+#+begin_src makefile :tangle src/lua-5.5.0/Makefile
+  # Makefile for installing Lua
+  # See doc/readme.html for installation and customization instructions.
+
+  # == CHANGE THE SETTINGS BELOW TO SUIT YOUR ENVIRONMENT =======================
+
+  # Your platform. See PLATS for possible values.
+  PLAT= guess
+
+  # Where to install. The installation starts in the src and doc directories,
+  # so take care if INSTALL_TOP is not an absolute path. See the local target.
+  # You may want to make INSTALL_LMOD and INSTALL_CMOD consistent with
+  # LUA_ROOT, LUA_LDIR, and LUA_CDIR in luaconf.h.
+  INSTALL_TOP= /usr/local
+  INSTALL_BIN= $(INSTALL_TOP)/bin
+  INSTALL_INC= $(INSTALL_TOP)/include
+  INSTALL_LIB= $(INSTALL_TOP)/lib
+  INSTALL_MAN= $(INSTALL_TOP)/man/man1
+  INSTALL_LMOD= $(INSTALL_TOP)/share/lua/$V
+  INSTALL_CMOD= $(INSTALL_TOP)/lib/lua/$V
+
+  # How to install. If your install program does not support "-p", then
+  # you may have to run ranlib on the installed liblua.a.
+  INSTALL= install -p
+  INSTALL_EXEC= $(INSTALL) -m 0755
+  INSTALL_DATA= $(INSTALL) -m 0644
+  #
+  # If you don't have "install" you can use "cp" instead.
+  # INSTALL= cp -p
+  # INSTALL_EXEC= $(INSTALL)
+  # INSTALL_DATA= $(INSTALL)
+
+  # Other utilities.
+  MKDIR= mkdir -p
+  RM= rm -f
+
+  # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
+
+  # Convenience platforms targets.
+  PLATS= guess aix bsd c89 freebsd generic ios linux macosx mingw posix solaris
+
+  # What to install.
+  TO_BIN= lua luac
+  TO_INC= lua.h luaconf.h lualib.h lauxlib.h lua.hpp
+  TO_LIB= liblua.a
+  TO_MAN= lua.1 luac.1
+
+  # Lua version and release.
+  V= 5.5
+  R= $V.0
+
+  # Targets start here.
+  all:	$(PLAT)
+
+  $(PLATS) help test clean:
+  	@cd src && $(MAKE) $@
+
+  install: dummy
+  	cd src && $(MKDIR) $(INSTALL_BIN) $(INSTALL_INC) $(INSTALL_LIB) $(INSTALL_MAN) $(INSTALL_LMOD) $(INSTALL_CMOD)
+  	cd src && $(INSTALL_EXEC) $(TO_BIN) $(INSTALL_BIN)
+  	cd src && $(INSTALL_DATA) $(TO_INC) $(INSTALL_INC)
+  	cd src && $(INSTALL_DATA) $(TO_LIB) $(INSTALL_LIB)
+  	cd doc && $(INSTALL_DATA) $(TO_MAN) $(INSTALL_MAN)
+
+  uninstall:
+  	cd src && cd $(INSTALL_BIN) && $(RM) $(TO_BIN)
+  	cd src && cd $(INSTALL_INC) && $(RM) $(TO_INC)
+  	cd src && cd $(INSTALL_LIB) && $(RM) $(TO_LIB)
+  	cd doc && cd $(INSTALL_MAN) && $(RM) $(TO_MAN)
+
+  local:
+  	$(MAKE) install INSTALL_TOP=../install
+
+  # make may get confused with install/ if it does not support .PHONY.
+  dummy:
+
+  # Echo config parameters.
+  echo:
+  	@cd src && $(MAKE) -s echo
+  	@echo "PLAT= $(PLAT)"
+  	@echo "V= $V"
+  	@echo "R= $R"
+  	@echo "TO_BIN= $(TO_BIN)"
+  	@echo "TO_INC= $(TO_INC)"
+  	@echo "TO_LIB= $(TO_LIB)"
+  	@echo "TO_MAN= $(TO_MAN)"
+  	@echo "INSTALL_TOP= $(INSTALL_TOP)"
+  	@echo "INSTALL_BIN= $(INSTALL_BIN)"
+  	@echo "INSTALL_INC= $(INSTALL_INC)"
+  	@echo "INSTALL_LIB= $(INSTALL_LIB)"
+  	@echo "INSTALL_MAN= $(INSTALL_MAN)"
+  	@echo "INSTALL_LMOD= $(INSTALL_LMOD)"
+  	@echo "INSTALL_CMOD= $(INSTALL_CMOD)"
+  	@echo "INSTALL_EXEC= $(INSTALL_EXEC)"
+  	@echo "INSTALL_DATA= $(INSTALL_DATA)"
+
+  # Echo pkg-config data.
+  pc:
+  	@echo "version=$R"
+  	@echo "prefix=$(INSTALL_TOP)"
+  	@echo "libdir=$(INSTALL_LIB)"
+  	@echo "includedir=$(INSTALL_INC)"
+
+  # Targets that do not create files (not all makes understand .PHONY).
+  .PHONY: all $(PLATS) help test clean install uninstall local dummy echo pc
+
+  # (end of Makefile)
+#+end_src

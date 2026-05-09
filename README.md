@@ -63,17 +63,16 @@ I use the following BASH script to build the software, install it, and generate 
 ```bash
 rammel=~/src/rammel
 function make-rammel {
-    test "build" equivalent to -n $(basename $(pwd))
+    test "build" = $(basename $(pwd))
     make --file=../src/Makefile srcdir=../src BUILDDIR=$(pwd) $1
 }
-cd $rammel && \
-    test -d build && \
-    rm -rf build && \
-    mkdir build && \
-    cd build && \
-    make-rammel all && \
-    sudo make-rammel install && \
-    make-rammel pdf; cd $rammel
+cd $rammel
+test -d build
+rm -rf build
+mkdir build
+cd build
+make-rammel all && sudo make-rammel install && make-rammel pdf
+cd $rammel
 ```
 
 ## Windows
