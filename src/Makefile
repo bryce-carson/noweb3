@@ -61,59 +61,60 @@ NOCOND ?= $(BUILD_EXEC)/tools/nocond
 LUA_VERSION = 2
 
 
-
-
-
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
 Makefile:: ;
 .PHONY: help all transfer installdirs tools ciilib lualib lualib3 code scripts styles careful transfer checkclean checkdifferent checksame dvi install clean clobber
 
-# help-helper = @printf "%s: %s\n" $1 $2; printf "%s\n" "$(value ${1})";
+
+
+define help-helper
+$(info ${1}: ${2})
+$(info $(value ${1}))
+endef
 help :
-# 	$(call help-helper,PIPE,What system call should Rammel use?)
+	$(info Paths (Fedoran defaults))
+	$(info ========================)
+	$(call help-helper,PREFIX,The installation prefix to use.)
+	$(call help-helper,BIN,The installation location for user programs.)
+	$(call help-helper,LIBEXEC,The installation location for programs used only by user programs.)
+	$(call help-helper,TEXINPUTS,The installation location for LaTeX and TeX style and class files.)
+	$(call help-helper,SHELL,The shell to use when invoking recipe rules.)
+	$(info  )
+	$(info Compiler)
+	$(info ========)
+	$(call help-helper,CC,The command to invoke a C compiler.)
+	$(call help-helper,CFLAGS,C compilation flags.)
+	$(call help-helper,XCFLAGS,Additional C compilation flags specific to the compilation of 'no'.)
+	$(call help-helper,CPPFLAGS,C preprocessor flags.)
+	$(info  )
+	$(info Linker-loader)
+	$(info =============)
+	$(call help-helper,LD,The command to invoke a C linker-loader.)
+	$(call help-helper,LIBPROLOGUE,Anything that should precede LDFLAGS when invoking the linker-loader.)
+	$(call help-helper,LDFLAGS,C linker-loader flags.)
+	$(call help-helper,LIBEPILOGUE,Anything that should succeed LDFLAGS when invoking the linker-loader.)
+	$(info  )
+	$(info Archiver)
+	$(info ========)
+	$(call help-helper,AR,Archive-maintaining program.)
+	$(call help-helper,ARFLAGS,Flags to give the archive-maintaining program.)
+	$(call help-helper,RANLIB,The command to invoke ranlib.)
+	$(info  )
+	$(info 'no' Build Options)
+	$(info ==================)
+	$(call help-helper,PIPE,What system call should Rammel use?)
+	$(call help-helper,XINCLUDES,Additional libraries to include when compiling.)
+	$(call help-helper,LUA_VERSION,The Lua version to build, link, and embed.)
+	$(call help-helper,CIIMAXALIGN,Affecting the linked CII library, the value for maximum alignment used when compiling CII; see CIIs index.html for more information.)
+	$(info  )
+	$(info Undocumented or Uncategorized Options)
+	$(info =====================================)
+	$(call help-helper,POSIX,Whether or not this system is POSIX-compliant.)
+	$(call help-helper,STRERROR,)
+	$(call help-helper,POPEN,)
+	$(exit)
 
-# 	@echo "==========================================================="
-# 	@echo "Paths (defaults designed for a user-installation on Fedora)"
-# 	@echo "==========================================================="
-# 	$(call help-helper,PREFIX,The installation prefix to use.)
-# 	$(call help-helper,BIN,The installation location for user programs.)
-# 	$(call help-helper,LIBEXEC,The installation location for programs used only by user programs.)
-# 	$(call help-helper,TEXINPUTS,The installation location for LaTeX and TeX style and class files.)
-# 	$(call help-helper,SHELL,The shell to use when invoking recipe rules.)
-
-# 	@echo "============================================="
-# 	@echo "Compiler, linker-loader, and archiver options"
-# 	@echo "============================================="
-# 	@echo "Compiler"
-# 	@echo "--------"
-# 	$(call help-helper,CC,The command to invoke a C compiler.)
-# 	$(call help-helper,CFLAGS,C compilation flags.)
-# 	$(call help-helper,XCFLAGS,Additional C compilation flags specific to the compilation of 'no'.)
-# 	$(call help-helper,CPPFLAGS,C preprocessor flags.)
-
-# 	@echo "Linker-loader"
-# 	@echo "-------------"
-# 	$(call help-helper,LD,The command to invoke a C linker-loader.)
-# 	$(call help-helper,LIBPROLOGUE,Anything that should precede LDFLAGS when invoking the linker-loader.)
-# 	$(call help-helper,LDFLAGS,C linker-loader flags.)
-# 	$(call help-helper,LIBEPILOGUE,Anything that should succeed LDFLAGS when invoking the linker-loader.)
-
-# 	@echo "Archiver and its options"
-# 	@echo "------------------------"
-# 	$(call help-helper,AR,Archive-maintaining program.)
-# 	$(call help-helper,ARFLAGS,Flags to give the archive-maintaining program.)
-# 	$(call help-helper,RANLIB,The command to invoke ranlib.)
-
-# 	$(call help-helper,CIIMAXALIGN,The value for maximum alignment used when compiling CII; see CIIs index.html for more information.)
-
-# 	$(call help-helper,XINCLUDES,Additional libraries to include when compiling the 'no' command.)
-
-# 	$(call help-helper,POPEN,document this option.)
-# 	$(call help-helper,POSIX,Whether or not this system is POSIX-compliant.)
-# 	$(call help-helper,STRERROR,document this option.)
-
-# 	$(call help-helper,LUA_VERSION,The Lua version to use.)
 
 all : code scripts styles
 
@@ -196,7 +197,7 @@ $(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS
 $(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 $(MAKE) -C $(srcdir)/tex "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 $(MAKE) -C $(srcdir)/c dvi "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
-$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/${1}${2}/${d}; )
+$(foreach d,c lua tex,cp $(wildcard -t $(BUILD_EXEC)/${1}${2}/${d} $(BUILD_EXEC)/${d}/*); )
 endef
 
 
@@ -205,11 +206,11 @@ transfer:
 	$(MAKE) -C $(srcdir) clobber all
 	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c" dvi
 	$(srcdir)/mkinstalldirs $(BUILD_EXEC)/2b/{c,lua,tex}
-	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/2b/${d}; )
+	$(foreach d,c lua tex,cp -t $(BUILD_EXEC)/2b/${d} $(wildcard $(BUILD_EXEC)/${d}/*); )
 
 
 
-	@echo "With noweb 2.11b, making Rammel with embeded Lua 3.2.2..."
+	@printf "\n\n\n\n\nWith noweb 2.11b, making Rammel with embeded Lua 3.2.2..."
 	$(MAKE) -C $(srcdir) clobber tools ciilib lualib3
 	$(srcdir)/mkinstalldirs $(BUILD_EXEC)/{,3b/}{c,lua,tex}
 # TODO: understand the intended use of LUALIB; this vexes me.
@@ -217,7 +218,7 @@ transfer:
 	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
 	$(MAKE) -C $(srcdir)/tex "NOTANGLE=more" "TANGLEOPTS= | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
 	$(MAKE) -C $(srcdir)/c dvi "NWPATH=$(LIBEXEC)/lua" "OUTPUT=$(BUILD_EXEC)/c"
-	$(foreach d,c lua tex,cp -R $(wildcard $(BUILD_EXEC)/${d}/*) $(BUILD_EXEC)/3b/${d}; )
+	$(foreach d,c lua tex,cp -t $(BUILD_EXEC)/3b/${d} $(wildcard $(BUILD_EXEC)/${d}/*); )
 
 
 
