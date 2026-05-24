@@ -1,3 +1,6 @@
+srcdir := ../$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+VPATH := $(srcdir)
+
 # makefile for lua hierarchy
 
 all clean klean:

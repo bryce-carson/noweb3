@@ -1,3 +1,6 @@
+srcdir := ../$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+VPATH := $(srcdir)
+
 # Makefile for installing Lua
 # See doc/readme.html for installation and customization instructions.
 

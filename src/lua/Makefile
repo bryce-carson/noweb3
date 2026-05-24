@@ -1,7 +1,11 @@
-CONFIG = $(addprefix $(OUTPUT)/,pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws)
-FILTERS = $(addprefix $(OUTPUT)/,cat.nws stripconds.nws xchunks.nws lines.nws)
-STAGES = $(addprefix $(OUTPUT)/,totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws) $(FILTERS)
-SCRIPTS = $(addprefix $(OUTPUT)/,tangle weave)
+override srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override VPATH := $(srcdir)
+
+
+CONFIG = pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws
+FILTERS = cat.nws stripconds.nws xchunks.nws lines.nws
+STAGES = totex.nws tohtml.nws noidx.nws elide.nws unmarkup.nws $(FILTERS)
+SCRIPTS = tangle weave
 
 .PHONY : all clean clobber install
 
@@ -17,25 +21,25 @@ clobber : clean
 ## or Lua 3.
 install : $(SCRIPTS) $(CONFIG) $(STAGES)
 	for i in $(CONFIG) $(STAGES); do                    \
-      sed 's@|LIBDIR|@$(LIB2)@g' $$i > $(OUTPUT)/$$i; \
+      sed 's@|LIBDIR|@$(LIB2)@g' $$i > $$i; \
   done
 	for i in $(SCRIPTS); do                       \
       cp $$i $(OUTPUT)/`basename $$i .nws`;     \
   done
 
-$(OUTPUT)/%.cfg : config.nw
+%.cfg : config.nw
 	$(NOTANGLE) $< $(TANGLEOPTS) -R$(@F) $(CPIF) $@
 
-$(OUTPUT)/%.nws : %.nw
+%.nws : %.nw
 	$(NOTANGLE) $< $(TANGLEOPTS) $(CPIF) $@
 
-$(OUTPUT)/tangle : tangle.nw
+tangle : tangle.nw
 	$(NOTANGLE) tangle.nw $(TANGLEOPTS) $(CPIF) $@
 
-$(OUTPUT)/weave : weave.nw
+weave : weave.nw
 	$(NOTANGLE) weave.nw $(TANGLEOPTS) $(CPIF) $@
 
-$(OUTPUT)/noidx.tex: noidx.nw
+noidx.tex: noidx.nw
 	which no
 	no weave -delay -x -filter 'elide hackers:*' noidx.nw > $@
 

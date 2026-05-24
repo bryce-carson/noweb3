@@ -62,23 +62,23 @@ I use the following BASH script to build the software, install it, and generate 
 
 ```bash
 rammel=~/src/rammel
-function make-rammel {
-    test "build" = $(basename $(pwd))
-    make --file=../src/Makefile srcdir=../src BUILDDIR=$(pwd) $1
+function make-rammel () {
+    test "build" = $(basename $(pwd)) || exit 1
+    make -f ${rammel}/src/Makefile srcdir=${rammel}/src $1
 }
 cd $rammel
 test -d build
 rm -rf build
 mkdir build
 cd build
-make-rammel all && sudo make-rammel install && make-rammel pdf
+make-rammel all && sudo make-rammel install && make-rammel dvi
 cd $rammel
 ```
 
 ## Windows
 Utilize WSL 2 and install any Linux distribution you prefer, then install the packages required for GNU Make and the GNU Compiler Collection (GCC).
 
-I won't take the time to make the GNU Makefile compatible with MSYS2 UCRT so that native EXEs and DLLs can be produced; if you'd like to contribute towards this you're welcome to, but instead I highely recommend pursuing use of WSL 2.
+I won't take the time to make the GNU Makefile compatible with MSYS2 UCRT so that native EXEs and DLLs can be produced; if you'd like to contribute towards this you're welcome to, but instead I highly recommend pursuing use of WSL 2.
 
 # Documentation
 Rammel's documentation is a work in progress, and is, of course, derived from the documentation of noweb version 3. Contributions and suggestions are welcome.

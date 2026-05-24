@@ -25,7 +25,7 @@ to be executed, which may or may not include an explicit path.  The
 second argument is a table of [[char*]]'s corresponding to the
 arguments to be sent to the program.  The third argument is the table
 of environment variables which are to be passed the program.
-N.B. that the sedond argument to [[XPipe_program]] should
+N.B. that the second argument to [[XPipe_program]] should
 \emph{not} contain a redundant copy of the program name; this is added at
 execution time for the UNIX implementation.
 
@@ -62,24 +62,20 @@ extern int fileno(FILE *);  /* needed on linux ?! */
 typedef struct T* T;
 
 <<header ((lua2))>>=
-extern T    XPipe_function     (int (*f)(void *cl, FILE *in, FILE *out), void *cl,
-                                char *name);
+extern T    XPipe_function     (int (*f)(void *cl, FILE *in, FILE *out), void *cl, char *name);
 <<header ((lua3))>>=
-extern T    XPipe_function     (int (*f)(void *cl, char *inname, char *outname), void *cl,
-                                char *name);
+extern T    XPipe_function     (int (*f)(void *cl, char *inname, char *outname), void *cl, char *name);
 <<header>>=
 extern T    XPipe_program      (char* path, char** argv, char** envp);
 extern T    XPipe_connect      (T left, T right);
 extern void XPipe_print        (FILE* fp, T pipeline);
 <<header ((lua2))>>=
 extern int  XPipe_run      (T pipeline, FILE *in, FILE *out);
-@
-
-\texttt{2026-05-09T02:14}: there is no corresponding definition to the lua3
-header; why am I seeing something different than David? Is this work in progress?
-
 <<header ((lua3))>>=
 extern int  XPipe_run      (T pipeline);
+@
+\texttt{2026-05-09T02:14}: there is no corresponding definition to the lua3
+header; why am I seeing something different than David? Is this work in progress?
 <<header>>=
 extern void XPipe_free         (T* pipeline);
 
@@ -299,11 +295,13 @@ void XPipe_free(T* pipeline) {
 \section{UNIX forking for pipeline execution}
 
 The UNIX implementation of the [[Pipeline_run]] function and its
-helper functions is described below.  [[<<xpipe-unx.c>>]] consists of
-UNIX-specific headers, the struct definistions, and prototypes and
-definitions for the UNIX versions of the functions that will execute
-the pipeline.  The [[#include]]s are for Linux, and they may have to
-be different for different kinds of Unix.
+helper functions is described below.
+% FIXME: the next two sentences are incorrect; the file no longer exists.
+% [[<<xpipe-unx.c>>]] consists of
+% UNIX-specific headers, the struct definitions, and prototypes and
+% definitions for the UNIX versions of the functions that will execute
+% the pipeline.  The [[#include]]s are for Linux, and they may have to
+% be different for different kinds of Unix.
 
 <<* ((fork))>>=
 #include <unistd.h>
@@ -334,6 +332,10 @@ to [[forkPipelineFrom]] (creates an interior node corresponding to
 pipeline to get information from) and [[forkStageTo]] (creates a leaf
 node corresponding to a program to send information to and execute),
 described below.
+
+% TODO: using the pst-tree LaTeX package would be a good idea to visualize the
+% data structure, not that a binary tree is a difficult structure. The prose is
+% merely thick here.
 
 A few helper routines have been implemented to facilitate the implementation
 of the [[XPipe_run]] function in Unix.  Two functions are
@@ -399,10 +401,11 @@ descriptors to close at the time of the first call to [[forkPipelineFrom]].
 <<Unix functions>>=
 int XPipe_run(XPipe_T pipeline, FILE *infp, FILE *outfp) {
 #if 0
-  fprintf(stderr, "unix running "); XPipe_print(stderr, pipeline); fflush(stderr);
+  fprintf(stderr, "unix running ");
+  XPipe_print(stderr, pipeline);
+  fflush(stderr);
 #endif
-  return waitfor(
-    forkPipelineFrom(pipeline->stages, fileno(infp), fileno(outfp), NULL));
+  return waitfor(forkPipelineFrom(pipeline->stages, fileno(infp), fileno(outfp), NULL));
 }
 @
 
@@ -625,14 +628,6 @@ int XPipe_run(XPipe_T pipeline, FILE *in, FILE *out) {
 #endif
   return do_stages(pipeline->stages, in, out);
 }
-<<temporary-file functions ((lua3))>>=
-int XPipe_run(XPipe_T pipeline) {
-#if 0
-  fprintf(stderr, "tmp running "); XPipe_print(stderr, pipeline); putc('\n', stderr); fflush(stderr);
-#endif
-  return do_stages(pipeline->stages, NULL, NULL);
-}
-@
 <<temporary-file functions ((lua2))>>=
 static int do_stages(List_T l, FILE *in, FILE *out) {
   int n;
@@ -926,6 +921,7 @@ Temporary files are supported using [[tmpname]], which is ISO~C.
 tmpnam (tmpname);
 assert(tmpname[0]);
 @ 
+
 \subsection{Possible help for Windows}
 
 Got this useful code from Patrick McPhee:

@@ -1,4 +1,5 @@
-srcdir ?= .
+srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+VPATH := $(srcdir)
 
 ## System calls
 PIPE ?= fork
@@ -39,8 +40,8 @@ STRERROR ?=
 
 ## These are built-in make variables, and may as well be overridden with noweb
 ## variants (when not initialized as more).
-TANGLE ?= more
-WEAVE ?= noweave
+# TANGLE ?= more
+# WEAVE ?= noweave
 PLATFORM ?= "unix"
 
 ## INSTALL* is recommended by the GNU Coding Standards, and is extremely
@@ -49,22 +50,14 @@ INSTALL ?= install
 INSTALL_PROGRAM ?= $(INSTALL)
 INSTALL_DATA ?= $(INSTALL) -m 644
 
-BUILDDIR ?= $(realpath $(srcdir)/../build)
-VPATH  ?= $(BUILDDIR)
-
-BUILD_EXEC ?= $(BUILDDIR)$(LIBEXEC)
-$(srcdir)/mkinstalldirs:: ;
-BUILD ?= $(srcdir)/mkinstalldirs | $(BUILD_EXEC)
-
-NOCOND ?= $(BUILD_EXEC)/tools/nocond
+NOCOND ?= ../tools/nocond
 
 LUA_VERSION = 2
 
 
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
-Makefile:: ;
-.PHONY: help all transfer installdirs tools ciilib lualib lualib3 code scripts styles careful transfer checkclean checkdifferent checksame dvi install clean clobber
+.PHONY: help all transfer builddirs installdirs tools cii lua-2.5.1 lua-3.2.2 code tex careful transfer checkclean checkdifferent checksame dvi install clean clobber
 
 
 
@@ -110,58 +103,56 @@ help :
 	$(info  )
 	$(info Undocumented or Uncategorized Options)
 	$(info =====================================)
+	$(call help-helper,VPATH,A list of directories in which to search for make-target prerequisites.)
+	$(call help-helper,BUILDDIR,The directory in which to build Rammel.)
+	$(call help-helper,INSTALL,The program used to install programs or data.)
+	$(call help-helper,INSTALL_PROGRAM,The options used with INSTALL to install programs.)
+	$(call help-helper,INSTALL_DATA,The options used with INSTALL to install data.)
+	$(call help-helper,PLATFORM,Either UNIX or NT.)
 	$(call help-helper,POSIX,Whether or not this system is POSIX-compliant.)
 	$(call help-helper,STRERROR,)
 	$(call help-helper,POPEN,)
-	$(exit)
+	$(call help-helper,TANGLE,A program used to tangle sources from web files.)
+	$(call help-helper,TANGLEOPTS,Options passed to TANGLE.)
+	$(call help-helper,WEAVE,A program used to weave web files into documents sources.)
+	$(call help-helper,WEAVEOPTS,Options passed to WEAVE.)
 
+Makefile:: ;
+$(srcdir)/mkinstalldirs:: ;
 
-all : code scripts styles
+all : code tex
 
-installdirs : $(srcdir)/mkinstalldirs
-	$(srcdir)/mkinstalldirs $(DESTDIR)$(LIBEXEC) $(TEXINPUTS)
+tools lua cii lua-2.5.1 lua-3.2.2 lua-5.5.5:
+	-$(srcdir)/mkinstalldirs $@
+	$(MAKE) -C $@ -f "$(srcdir)/$@/Makefile"
 
-$(BUILD_EXEC) : $(srcdir)/mkinstalldirs
-	$(srcdir)/mkinstalldirs $(addprefix $(BUILD_EXEC)/,tools cii lua-2.5.1 lua-3.2.2 c lua tex)
+tex : tools
+	-$(srcdir)/mkinstalldirs $@
+	$(MAKE) -C $@ -f "$(srcdir)/$@/Makefile" "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>"
 
-tools : $(BUILD)
-	$(MAKE) -C $(srcdir)/tools "OUTPUT=$(BUILD_EXEC)/tools"
+TANGLEOPTS =  | ../tools/markup | ../tools/nt
 
-ciilib : $(BUILD)
-	$(MAKE) -C $(srcdir)/cii "OUTPUT=$(BUILD_EXEC)/cii"
-
-lualib : $(BUILD)
-	$(MAKE) -C $(srcdir)/lua-2.5.1 "OUTPUT=$(BUILD_EXEC)/lua-2.5.1"
-
-lualib3 : $(BUILD)
-	$(MAKE) -C $(srcdir)/lua-3.2.2 "OUTPUT=$(BUILD_EXEC)/lua-3.2.2"
-
-
-
-
-
-TANGLEOPTS =  | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt
 code: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
-code : tools ciilib lualib
-	$(MAKE) -C $(srcdir)/c                      \
-        "NOTANGLE=more"                       \
-        "TANGLEOPTS= $(TANGLEOPTS)"           \
-        "CPIF=>"                              \
-        "TOOLS=$(BUILD_EXEC)/tools"           \
-        "LUA=../$(LUA_VERSION)"               \
-        "LUALIB=$(BUILD_EXEC)/$(LUA_VERSION)" \
-        "OUTPUT=$(BUILD_EXEC)/c"
-scripts: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
-scripts : tools
-	$(MAKE) -C $(srcdir)/lua "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
-styles : tools
-	$(MAKE) -C $(srcdir)/../docs/tex "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/tex"
+code : tools cii lua-2.5.1
+	-$(srcdir)/mkinstalldirs c
+	$(info ==========================)
+	$(info Building Rammel with Lua $(LUA_VERSION))
+	$(info ==========================)
+	$(MAKE) -C c -f "$(srcdir)/c/Makefile"        \
+        "NOTANGLE=more"                         \
+        "TANGLEOPTS=$(TANGLEOPTS)"              \
+        "CPIF=>"                                \
+        "LUA=../$(LUA_VERSION)"                 \
+        "LUALIB=$(LUA_VERSION)"
 
+# FIXME: what was this previously building? There is no scripts directory with a Makefile!
+# scripts: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
+# scripts : tools
+# 	$(srcdir)/mkinstalldirs $@
+# 	$(MAKE) -C $@ "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>"
 
-
-
-
-careful :
+# Bootstrap Rammel with the tools, then build Rammel with Rammel.
+careful : tools
 	$(MAKE) clobber all clean
 	-rm -rf $(BUILD_EXEC)/first
 	# mkdir $(addprefix $(BUILD_EXEC)/,first first/c first/lua first/tex)
@@ -170,7 +161,7 @@ careful :
 	cp -R $(BUILD_EXEC)/lua/* $(BUILD_EXEC)/first/lua
 	cp -R $(BUILD_EXEC)/tex/* $(BUILD_EXEC)/first/tex
 
-	$(MAKE) clobber tools ciilib lualib
+	$(MAKE) clobber tools cii lua-2.5.1
 	-mkdir $(BUILD_EXEC)/c
 	$(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5" "LUALIB=$(LIBEXEC)/lua-2.5" "OUTPUT=$(BUILD_EXEC)/c"
 
@@ -191,7 +182,7 @@ careful :
 
 define with_m_make_n
 @printf "With Rammel with embedded Lua %s, making Rammel with embeded Lua %s...\n" $(if $(findstring "2",$(1)),"2.5.1","3.2.2") $(if $(findstring "2",${1}),"2.5.1","3.2.2")
-$(MAKE) -C $(srcdir) clobber tools ciilib $(if $(findstring "2",${2}),lualib,lualib3)
+$(MAKE) -C $(srcdir) clobber tools cii $(if $(findstring "2",${2}),lua-2.5.1,lua-3.2.2)
 $(srcdir)/mkinstalldirs $(BUILD_EXEC)/{,${1}${2}/}{c,lua,tex}
 $(MAKE) -C $(srcdir)/c "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0") "OUTPUT=$(BUILD_EXEC)/c"
 $(MAKE) -C $(srcdir)/lua "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "OUTPUT=$(BUILD_EXEC)/lua"
@@ -211,7 +202,7 @@ transfer:
 
 
 	@printf "\n\n\n\n\nWith noweb 2.11b, making Rammel with embeded Lua 3.2.2..."
-	$(MAKE) -C $(srcdir) clobber tools ciilib lualib3
+	$(MAKE) -C $(srcdir) clobber tools cii lua-3.2.2
 	$(srcdir)/mkinstalldirs $(BUILD_EXEC)/{,3b/}{c,lua,tex}
 # TODO: understand the intended use of LUALIB; this vexes me.
 	$(MAKE) -C $(srcdir)/c "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | $(BUILD_EXEC)/tools/markup | $(BUILD_EXEC)/tools/nt" "CPIF=>" "TOOLS=$(BUILD_EXEC)/tools" "LUA=${srcdir}/lua-3.2.2" "LUALIB=$(LIBEXEC)/lua-3.0" "OUTPUT=$(BUILD_EXEC)/c"
@@ -251,13 +242,14 @@ checksame :
 	$(foreach other,3b 32,$(call checkdifferent_fn, ${other}))
 
 dvi :
-	$(MAKE) -C $(srcdir)/c "OUTPUT=$(BUILD_EXEC)/c" dvi
+	$(MAKE) -C $(srcdir)/c dvi
 
-install : installdirs code scripts styles | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!"))
-	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(BIN) $(addprefix $(BUILD_EXEC)/c/,no nwmtime)
-	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(LIBEXEC) $(wildcard $(BUILD_EXEC)/lua/*)
-	$(INSTALL_DATA) $(BUILD_EXEC)/tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
-	$(INSTALL_DATA) $(BUILD_EXEC)/tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
+install : code tex | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(BIN) doesn't exist!")) $(srcdir)/mkinstalldirs
+	$(srcdir)/mkinstalldirs $(DESTDIR)$(LIBEXEC) $(TEXINPUTS)
+	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(BIN) c/no c/nwmtime
+	$(INSTALL_PROGRAM) --target-directory $(DESTDIR)$(LIBEXEC) $(wildcard lua/*)
+	$(INSTALL_DATA) tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
+	$(INSTALL_DATA) tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
 
 

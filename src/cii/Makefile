@@ -1,18 +1,21 @@
-OBJS = $(addprefix $(OUTPUT)/,$(addsuffix .o,arena array assert atom except fmt list mem seq str))
+override srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))/src
+override VPATH := $(srcdir)
+
+
+OBJS = $(addsuffix .o,arena array assert atom except fmt list mem seq str)
 
 .PHONY: Makefile all clean clobber
 
-all: $(OUTPUT)/libcii.so $(OUTPUT)/memchk.o
+all: libcii.so memchk.o
 
-$(OUTPUT)/libcii.so: $(OBJS)
+libcii.so: $(OBJS)
 	$(AR) -rsc $@ $(OBJS)
 
-$(srcdir)/cii/src/%.c:: ;
-$(OUTPUT)/%.o: $(srcdir)/cii/src/%.c
-	$(CC) $(CFLAGS) -Iinclude -DMAXALIGN=${CIIMAXALIGN} $< -o $@
+%.o : %.c
+	$(CC) $(CFLAGS) -I$(srcdir)/../include -DMAXALIGN=${CIIMAXALIGN} $< -o $@
 
 clean:
 	-$(RM) $(OBJS)
 
 clobber:	clean
-	-$(RM) $(OUTPUT)/libcii.so $(OUTPUT)/*.o
+	-$(RM) libcii.so *.o
