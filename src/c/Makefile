@@ -78,7 +78,7 @@ clobber : clean
 	-rm -f no nwmtime doc.dvi
 
 doc.tex : doc.nw
-	cp doc.nw $@
+	cp $< $@
 
 FILES = $(addsuffix .nw,columns cpif errors finduses getline ipipe ipipe-lua    \
 lua-main main markparse markup match modtrees modules mpipe mpipe-lua notangle  \
