@@ -59,7 +59,7 @@ dvi : doc.tex allcode.tex
 	@echo "Building the literate program and user documentation..."
 	@echo "Building the literate program will likey fail if you have not built and installed the installed the program already."
 	@echo "Building the literate program and user documentation requires John Collins' latexmk."
-	latexmk -output-directory=. doc.tex
+	TEXMF=$(TEXMF_DIR) latexmk $(LATEXMK_OPTS) -output-directory=. doc.tex
 
 nwmtime : $(NWMTIMEOBJS)
 	$(CC) $(filter-out -c,$(CFLAGS)) $(CPPFLAGS) $(LDFLAGS) $(NWMTIMEOBJS) -o $@
@@ -72,7 +72,7 @@ touch : $(SRCS)
 	touch $(SRCS)
 
 clean :
-	-rm -f $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(wildcard nwbuffer-lua* allcode.tex doc.*)
+	-rm -f $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(wildcard nwbuffer-lua* allcode.tex doc.tex)
 
 clobber : clean
 	-rm -f no nwmtime doc.dvi

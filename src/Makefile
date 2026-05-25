@@ -54,6 +54,9 @@ NOCOND ?= ../tools/nocond
 
 LUA_VERSION = 2
 
+LATEXMK_OPTS = -xelatex -pdf
+TEXMF_DIR = /usr/share/texlive/texmf-dist
+
 
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
@@ -178,6 +181,9 @@ code : tools cii lua-2.5.1
 
 
 CP_C_LUA_TEX = $(foreach d,c lua tex,cp -t ${1}${2}/${d} $(wildcard ${d}/*); )
+Cf = -C ${1}${2}/${3} -f $(srcdir)/${3}/Makefile
+
+MAKE_DVI = $(MAKE) $(call Cf,${1},${2},c) dvi "NWPATH=$(realpath $(pwd)/lua)" "NWDEFAULTDIR=$(realpath $(pwd)/lua)"
 
 define with_m_make_n
 @printf "========================================================================="
@@ -185,10 +191,10 @@ define with_m_make_n
 @printf "========================================================================="
 $(MAKE) -f $(srcdir)/Makefile clobber tools cii $(if $(findstring "2",${2}),lua-2.5.1,lua-3.2.2)
 $(srcdir)/mkinstalldirs ${1}${2}/{c,lua,tex}
-$(MAKE) -C ${1}${2}/c -f $(srcdir)/c/Makefile "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0")
-$(MAKE) -C ${1}${2}/lua -f $(srcdir)/lua/Makefile "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>"
-$(MAKE) -C ${1}${2}/tex -f $(srcdir)/tex/Makefile "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>"
-$(MAKE) -C $(srcdir)/c dvi "NWPATH=$(LIBEXEC)/lua"
+$(MAKE) $(call Cf,${1},${2},c) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0")
+$(MAKE) $(call Cf,${1},${2},lua) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>"
+$(MAKE) $(call Cf,${1},${2},tex) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>"
+$(call MAKE_DVI,${1},${2})
 $(call CP_C_LUA_TEX,${1},${2})
 endef
 
@@ -197,7 +203,7 @@ transfer :
 	@printf "With noweb 2.11b, making Rammel with embeded Lua 2.5.1...\n"
 	@printf "=========================================================\n"
 	$(MAKE) -f $(srcdir)/Makefile clobber all
-	$(MAKE) -C c -f $(srcdir)/c/Makefile "NWPATH=$(LIBEXEC)/lua" dvi
+	$(call MAKE_DVI,2,b)
 	@$(srcdir)/mkinstalldirs 2b/{c,lua,tex}
 	$(call CP_C_LUA_TEX,2,b)
 
@@ -212,7 +218,8 @@ transfer :
 	$(MAKE) -C c -f $(srcdir)/c/Makefile "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | tools/markup | tools/nt" "CPIF=>" "TOOLS=tools" "LUA=${srcdir}/lua-3.2.2" "LUALIB=$(LIBEXEC)/lua-3.0"
 	$(MAKE) -C lua -f $(srcdir)/lua/Makefile "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | tools/markup | tools/nt" "CPIF=>"
 	$(MAKE) -C tex -f $(srcdir)/tex/Makefile "NOTANGLE=more" "TANGLEOPTS= | tools/markup | tools/nt" "CPIF=>"
-	$(MAKE) -C c -f $(srcdir)/c/Makefile dvi "NWPATH=$(LIBEXEC)/lua"
+	$(MAKE) -C c -f $(srcdir)/c/Makefile "NWPATH=$(realpath $(pwd)/lua)" dvi
+	$(call MAKE_DVI,3,b)
 	$(call CP_C_LUA_TEX,3,b)
 
 

@@ -1,5 +1,3 @@
-% $Id$
-
 \documentclass[twoside]{article}
 \usepackage{noweb,multicol}
 \usepackage{hyperref}
