@@ -38,10 +38,6 @@ POPEN ?=
 POSIX ?= 
 STRERROR ?= 
 
-## These are built-in make variables, and may as well be overridden with noweb
-## variants (when not initialized as more).
-# TANGLE ?= more
-# WEAVE ?= noweave
 PLATFORM ?= "unix"
 
 ## INSTALL* is recommended by the GNU Coding Standards, and is extremely
@@ -50,7 +46,13 @@ INSTALL ?= install
 INSTALL_PROGRAM ?= $(INSTALL)
 INSTALL_DATA ?= $(INSTALL) -m 644
 
-NOCOND ?= ../tools/nocond
+TOOLS ?= $(srcdir)/../build/tools
+NOCOND ?= $(TOOLS)/nocond
+MARKUP ?= $(TOOLS)/markup
+NT ?= $(TOOLS)/nt
+NOTANGLE=more
+TANGLEOPTS= | $(MARKUP) | $(NT)
+CPIF=>
 
 LUA_VERSION = 2
 
@@ -60,7 +62,7 @@ TEXMF_DIR = /usr/share/texlive/texmf-dist
 
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
-.PHONY: help all transfer builddirs installdirs tools cii lua-2.5.1 lua-3.2.2 code tex careful transfer checkclean checkdifferent checksame dvi install clean clobber
+.PHONY: help all transfer builddirs installdirs tools cii lua lua-2.5.1 lua-3.2.2 code tex careful transfer checkclean checkdifferent checksame dvi install clean clobber
 
 
 
@@ -129,58 +131,31 @@ tools lua cii lua-2.5.1 lua-3.2.2 lua-5.5.5:
 	-@$(srcdir)/mkinstalldirs $@
 	-@$(MAKE) -C $@ -f $(srcdir)/$@/Makefile
 
+# To tangle is to fight, especially when there are no options.
+# I was tired of fighting, so I created this function with these options:
+# fight ${1} ${2}: 1 is either $(NT) or "no tangle", 2 is 2 or 3.
+# $(call fight,$(MARKUP) | $(NT),2)
+# $(call fight,$(MARKUP) | $(NT),3)
+# $(call fight,$(LIBEXEC)/${1}b/c/no tangle,2)
+# $(call fight,$(LIBEXEC)/${1}b/c/no tangle,3)
+fight =  | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | ${1}
+
 tex : tools
 	-@$(srcdir)/mkinstalldirs $@
-	-@$(MAKE) -C $@ -f "$(srcdir)/$@/Makefile" "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>"
+	-@$(MAKE) -C $@ -f "$(srcdir)/$@/Makefile" "TANGLEOPTS=$(TANGLEOPTS)"
 
-TANGLEOPTS =  | ../tools/markup | ../tools/nt
-
-code: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
-code : tools cii lua-2.5.1
+code : tools cii lua-2.5.1 lua
 	-@$(srcdir)/mkinstalldirs c
 	$(info ==========================)
 	$(info Building Rammel with Lua $(LUA_VERSION))
 	$(info ==========================)
-	$(MAKE) -C c -f $(srcdir)/c/Makefile          \
-        "NOTANGLE=more"                         \
-        "TANGLEOPTS=$(TANGLEOPTS)"              \
-        "CPIF=>"                                \
-        "LUA=../$(LUA_VERSION)"                 \
+	$(MAKE) -C c -f $(srcdir)/c/Makefile                  \
+        "TANGLEOPTS=$(call fight,$(MARKUP) | $(NT),2)"  \
+        "LUA=../$(LUA_VERSION)"                         \
         "LUALIB=$(LUA_VERSION)"
 
-# FIXME: what was this previously building? There is no scripts directory with a Makefile!
-# scripts: TANGLEOPTS :=  | $(NOCOND) lua2 | $(NOCOND) $(PIPE) $(TANGLEOPTS)
-# scripts : tools
-# 	$(srcdir)/mkinstalldirs $@
-# 	$(MAKE) -C $@ "NOTANGLE=more" "TANGLEOPTS=$(TANGLEOPTS)" "CPIF=>"
-
-# Bootstrap Rammel with the tools, then build Rammel with Rammel.
-# careful : tools
-# 	$(MAKE) -f $(srcdir)/Makefile clobber all
-# 	-rm -rf $(BUILD_EXEC)/first
-# 	$(srcdir)/mkinstalldirs first/{c,lua,tex}
-# 	cp -R c/* first/c
-# 	cp -R lua/* first/lua
-# 	cp -R tex/* first/tex
-
-# 	$(MAKE) -f $(srcdir)/Makefile clobber tools cii lua-2.5.1
-# 	-mkdir c
-# 	$(MAKE) -C c -f $(srcdir)/c/Makefile "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua2 | $(NOCOND) $(PIPE) | $(LIBEXEC)/first/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" "LUA=../lua-2.5.1" "LUALIB=$(LIBEXEC)/lua-2.5.1"
-
-# 	-mkdir $(LIBEXEC)/lua
-# 	$(MAKE) -C lua -f $(srcdir)/lua/Makefile "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>"
-
-# 	-mkdir $(LIBEXEC)/tex
-# 	$(MAKE) -C tex -f $(srcdir)/tex/Makefile "NWPATH=$(LIBEXEC)/first/lua" "NOTANGLE=$(LIBEXEC)/first/c/no tangle" "TANGLEOPTS=" "CPIF=>"
-
-# 	$(MAKE) -C c -f $(srcdir)/c/Makefile "NWPATH=$(LIBEXEC)/first/lua" doc
-# 	-$(RMDIR) first
-
-# 	$(MAKE) -f $(srcdir)/Makefile all clean
-
-
-
 CP_C_LUA_TEX = $(foreach d,c lua tex,cp -t ${1}${2}/${d} $(wildcard ${d}/*); )
+# Cf: GNU make options -C and -f
 Cf = -C ${1}${2}/${3} -f $(srcdir)/${3}/Makefile
 
 MAKE_DVI = $(MAKE) $(call Cf,${1},${2},c) dvi "NWPATH=$(realpath $(pwd)/lua)" "NWDEFAULTDIR=$(realpath $(pwd)/lua)"
@@ -191,9 +166,10 @@ define with_m_make_n
 @printf "========================================================================="
 $(MAKE) -f $(srcdir)/Makefile clobber tools cii $(if $(findstring "2",${2}),lua-2.5.1,lua-3.2.2)
 $(srcdir)/mkinstalldirs ${1}${2}/{c,lua,tex}
-$(MAKE) $(call Cf,${1},${2},c) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(NOCOND) $(PIPE) | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5","LUA=../lua-3.0") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5","LUALIB=$(LIBEXEC)/lua-3.0")
-$(MAKE) $(call Cf,${1},${2},lua) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua${2} | $(LIBEXEC)/${1}b/c/no tangle" "CPIF=>"
-$(MAKE) $(call Cf,${1},${2},tex) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS=" "CPIF=>"
+# Cf: GNU make options -C and -f
+$(MAKE) $(call Cf,${1},${2},c) "NWPATH=$(LIBEXEC)/${1}b/lua"   "TANGLEOPTS=$(call fight,$(LIBEXEC)/${1}b/c/no tangle,${2})" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5.1","LUA=../lua-3.2.2") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5.1","LUALIB=$(LIBEXEC)/lua-3.2.2")
+$(MAKE) $(call Cf,${1},${2},lua) "NWPATH=$(LIBEXEC)/${1}b/lua" "TANGLEOPTS=$(call fight,$(LIBEXEC)/${1}b/c/no tangle,${2})"
+$(MAKE) $(call Cf,${1},${2},tex) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS="
 $(call MAKE_DVI,${1},${2})
 $(call CP_C_LUA_TEX,${1},${2})
 endef
@@ -202,10 +178,10 @@ transfer :
 	@printf "=========================================================\n"
 	@printf "With noweb 2.11b, making Rammel with embeded Lua 2.5.1...\n"
 	@printf "=========================================================\n"
-	$(MAKE) -f $(srcdir)/Makefile clobber all
-	$(call MAKE_DVI,2,b)
+	$(MAKE) -f $(srcdir)/Makefile clobber tools cii lua-2.5.1 lua tex
 	@$(srcdir)/mkinstalldirs 2b/{c,lua,tex}
-	$(call CP_C_LUA_TEX,2,b)
+	@$(call CP_C_LUA_TEX,2,b)
+	$(call MAKE_DVI,2,b)
 
 
 
@@ -213,14 +189,13 @@ transfer :
 	@printf "With noweb 2.11b, making Rammel with embeded Lua 3.2.2...\n"
 	@printf "=========================================================\n"
 	$(MAKE) -f $(srcdir)/Makefile clobber tools cii lua-3.2.2
-	@$(srcdir)/mkinstalldirs 3b/{c,lua,tex}
 # TODO: understand the intended use of LUALIB; this vexes me.
-	$(MAKE) -C c -f $(srcdir)/c/Makefile "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | $(NOCOND) $(PIPE) | tools/markup | tools/nt" "CPIF=>" "TOOLS=tools" "LUA=${srcdir}/lua-3.2.2" "LUALIB=$(LIBEXEC)/lua-3.0"
-	$(MAKE) -C lua -f $(srcdir)/lua/Makefile "NOTANGLE=more" "TANGLEOPTS= | $(NOCOND) lua3 | tools/markup | tools/nt" "CPIF=>"
-	$(MAKE) -C tex -f $(srcdir)/tex/Makefile "NOTANGLE=more" "TANGLEOPTS= | tools/markup | tools/nt" "CPIF=>"
-	$(MAKE) -C c -f $(srcdir)/c/Makefile "NWPATH=$(realpath $(pwd)/lua)" dvi
+	$(MAKE) $(call Cf,,,c)   $(call fight,$(MARKUP) | $(NT),3) "LUA=${srcdir}/lua-3.2.2" "LUALIB=$(LIBEXEC)/lua-3.2.2"
+	$(MAKE) $(call Cf,,,lua) $(call fight,$(MARKUP) | $(NT),3)
+	$(MAKE) $(call Cf,,,tex) $(call fight,$(MARKUP) | $(NT),3)
+	@$(srcdir)/mkinstalldirs 3b/{c,lua,tex}
+	@$(call CP_C_LUA_TEX,3,b)
 	$(call MAKE_DVI,3,b)
-	$(call CP_C_LUA_TEX,3,b)
 
 
 

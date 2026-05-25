@@ -1,6 +1,7 @@
 override srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 override VPATH := $(srcdir)
 
+# NOTANGLE = $(TOOLS)/nt
 
 CONFIG = pipes.cfg sys.cfg noweb.cfg util.cfg list.nws set.nws
 FILTERS = cat.nws stripconds.nws xchunks.nws lines.nws
@@ -34,10 +35,10 @@ install : $(SCRIPTS) $(CONFIG) $(STAGES)
 	$(NOTANGLE) $< $(TANGLEOPTS) $(CPIF) $@
 
 tangle : tangle.nw
-	$(NOTANGLE) tangle.nw $(TANGLEOPTS) $(CPIF) $@
+	$(NOTANGLE) $< $(TANGLEOPTS) $(CPIF) $@
 
 weave : weave.nw
-	$(NOTANGLE) weave.nw $(TANGLEOPTS) $(CPIF) $@
+	$(NOTANGLE) $< $(TANGLEOPTS) $(CPIF) $@
 
 noidx.tex: noidx.nw
 	which no
