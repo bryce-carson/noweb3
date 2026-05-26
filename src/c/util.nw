@@ -78,6 +78,7 @@ int load_nwfile(const char *filename) {
   }
 @ 
 <<*>>=
+/** Splits path by Sys_pathsep into List_T of Atoms (CII). Returns components in original order. */
 List_T pathsplit(const char *path) {
   List_T l = List_list(NULL);
   const char *s, *t;
@@ -94,8 +95,9 @@ List_T pathsplit(const char *path) {
 #define NWDEFAULTDIR "."
 #endif
 if (!searchpath) {
+  /* NWPATH is an override */
   char *p = getenv("NWPATH");
-  fprintf(stderr, "[Rammel load_nwfile()] searchpath is null, so utilizing NWDEFAULTDIR = %s.\n", NWDEFAULTDIR);
+  fprintf(stderr, "[Rammel load_nwfile()] searchpath was NULL, so pathsplit(%s) into List_T of Atoms (NWPATH environment variable override or default, hardcoded NWDEFAULTDIR).\n", p ? p : NWDEFAULTDIR);
   searchpath = pathsplit(p ? p : NWDEFAULTDIR);
   List_map(searchpath, replace_empty, NULL);
  }

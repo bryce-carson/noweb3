@@ -14,8 +14,8 @@ libcii.so: $(OBJS)
 %.o : %.c
 	$(CC) $(CFLAGS) -I$(srcdir)/../include -DMAXALIGN=${CIIMAXALIGN} $< -o $@
 
-clean:
-	-$(RM) $(OBJS)
+clean :
+	$(RM) $(OBJS)
 
-clobber:	clean
-	-$(RM) libcii.so *.o
+clobber :	clean
+	$(RM) libcii.so *.o

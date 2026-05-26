@@ -1,14 +1,10 @@
-srcdir := ../$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-VPATH := $(srcdir)
+override srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override VPATH := $(srcdir)
 
 # makefile for lua hierarchy
 
 all clean klean:
-	$(MAKE) -C include $@
-	$(MAKE) -C src $@
-	$(MAKE) -C src/luac $@
-	$(MAKE) -C src/lib $@
-	$(MAKE) -C src/lua $@
+	$(foreach d,include src src/luac src/lib src/lua,mkdir -p ${d}; $(MAKE) -C ${d} -f $(srcdir)/${d}/Makefile $@; )
 
 strip:
 	strip bin/lua*

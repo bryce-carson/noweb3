@@ -56,13 +56,13 @@ CPIF=>
 
 LUA_VERSION = 2
 
-LATEXMK_OPTS = -xelatex -pdf
+LATEXMK_OPTS = -latex -dvi
 TEXMF_DIR = /usr/share/texlive/texmf-dist
 
 
 # Stop editing. No user-serviceable parts below.
 .EXPORT_ALL_VARIABLES:
-.PHONY: help all transfer builddirs installdirs tools cii lua lua-2.5.1 lua-3.2.2 code tex careful transfer checkclean checkdifferent checksame dvi install clean clobber
+.PHONY: help all transfer builddirs installdirs tools cii lua lua-2.5.1 lua-3.2.2 code tex careful checkclean checkdifferent checksame dvi install clean clobber
 
 
 
@@ -128,8 +128,8 @@ $(srcdir)/mkinstalldirs:: ;
 all : code tex
 
 tools lua cii lua-2.5.1 lua-3.2.2 lua-5.5.5:
-	-@$(srcdir)/mkinstalldirs $@
-	-@$(MAKE) -C $@ -f $(srcdir)/$@/Makefile
+	@$(srcdir)/mkinstalldirs $@
+	@$(MAKE) -C $@ -f $(srcdir)/$@/Makefile
 
 # To tangle is to fight, especially when there are no options.
 # I was tired of fighting, so I created this function with these options:
@@ -144,74 +144,38 @@ tex : tools
 	-@$(srcdir)/mkinstalldirs $@
 	-@$(MAKE) -C $@ -f "$(srcdir)/$@/Makefile" "TANGLEOPTS=$(TANGLEOPTS)"
 
-code : tools cii lua-2.5.1 lua
-	-@$(srcdir)/mkinstalldirs c
-	$(info ==========================)
-	$(info Building Rammel with Lua $(LUA_VERSION))
-	$(info ==========================)
-	$(MAKE) -C c -f $(srcdir)/c/Makefile                  \
-        "TANGLEOPTS=$(call fight,$(MARKUP) | $(NT),2)"  \
-        "LUA=../$(LUA_VERSION)"                         \
-        "LUALIB=$(LUA_VERSION)"
-
-CP_C_LUA_TEX = $(foreach d,c lua tex,cp -t ${1}${2}/${d} $(wildcard ${d}/*); )
+CP_C_LUA_TEX = $(foreach d,c lua tex, $(intcmp $(words $(wildcard ${d}/*)),0,,,cp -t ${1}${2}/${d} $(wildcard ${d}/*); ))
 # Cf: GNU make options -C and -f
-Cf = -C ${1}${2}/${3} -f $(srcdir)/${3}/Makefile
+Cf = -C $(if $(findstring b,${1}),,${1}${2}/)${3} -f $(srcdir)/${3}/Makefile
 
-MAKE_DVI = $(MAKE) $(call Cf,${1},${2},c) dvi "NWPATH=$(realpath $(pwd)/lua)" "NWDEFAULTDIR=$(realpath $(pwd)/lua)"
+MAKE_DVI = $(MAKE) $(call Cf,${1},${2},c) dvi "NWPATH=../lua" "NOWEAVE=../c/no weave" "NOTANGLE=../c/no tangle"
 
 define with_m_make_n
-@printf "========================================================================="
-@printf "With Rammel with embedded Lua %s, making Rammel with embeded Lua %s...\n" $(if $(findstring "2",$(1)),"2.5.1","3.2.2") $(if $(findstring "2",${1}),"2.5.1","3.2.2")
-@printf "========================================================================="
-$(MAKE) -f $(srcdir)/Makefile clobber tools cii $(if $(findstring "2",${2}),lua-2.5.1,lua-3.2.2)
-$(srcdir)/mkinstalldirs ${1}${2}/{c,lua,tex}
+@printf "=========================================================================\n"
+@printf "With %s, making Rammel with embeded Lua %s...\n" "$(if $(findstring b,${1}),noweb 2.11b,Rammel with embedded Lua $(if $(findstring 2,$(1)),2.5.1,3.2.2))" "$(if $(findstring 2,${2}),2.5.1,3.2.2)"
+@printf "=========================================================================\n"
+$(MAKE) -f $(srcdir)/Makefile clobber tools cii $(if $(findstring 2,${2}),"lua-2.5.1","lua-3.2.2")
+$(srcdir)/mkinstalldirs $(if $(findstring b,${1}),,${1}${2}/){c,lua,tex}
 # Cf: GNU make options -C and -f
-$(MAKE) $(call Cf,${1},${2},c) "NWPATH=$(LIBEXEC)/${1}b/lua"   "TANGLEOPTS=$(call fight,$(LIBEXEC)/${1}b/c/no tangle,${2})" "TOOLS=$(LIBEXEC)/tools" $(if $(findstring "2",$2),"LUA=../lua-2.5.1","LUA=../lua-3.2.2") $(if $(findstring "2",$2),"LUALIB=$(LIBEXEC)/lua-2.5.1","LUALIB=$(LIBEXEC)/lua-3.2.2")
-$(MAKE) $(call Cf,${1},${2},lua) "NWPATH=$(LIBEXEC)/${1}b/lua" "TANGLEOPTS=$(call fight,$(LIBEXEC)/${1}b/c/no tangle,${2})"
-$(MAKE) $(call Cf,${1},${2},tex) "NWPATH=$(LIBEXEC)/${1}b/lua" "NOTANGLE=$(LIBEXEC)/${1}b/c/no tangle" "TANGLEOPTS="
+$(MAKE) $(call Cf,${1},${2},c) "NWPATH=../lua" "TANGLEOPTS=$(call fight,$(if $(findstring b,${1}),$(MARKUP) | $(NT),$(srcdir)/../../${1}${2}/c/no tangle),$(if $(findstring b,${1}),2,${2}))" $(if $(findstring 2,$2),"LUA=../lua-2.5.1","LUA=../lua-3.2.2") $(if $(findstring 2,${2}),"LUALIB=$(LIBEXEC)/lua-2.5.1","LUALIB=$(LIBEXEC)/lua-3.2.2")
+$(MAKE) $(call Cf,${1},${2},lua) "NWPATH=../lua" "TANGLEOPTS=$(call fight,$(if $(findstring b,${1}),$(MARKUP) | $(NT),$(srcdir)/../../${1}${2}/c/no tangle),$(if $(findstring b,${1}),2,${2}))"
+$(MAKE) $(call Cf,${1},${2},tex) "NWPATH=../lua" "NOWEAVE=../c/no weave" "NOTANGLE=../c/no tangle" "TANGLEOPTS=$(if $(findstring "b",${1}),$(call fight,$(MARKUP) | $(NT),2),)"
 $(call MAKE_DVI,${1},${2})
 $(call CP_C_LUA_TEX,${1},${2})
 endef
 
-transfer :
-	@printf "=========================================================\n"
-	@printf "With noweb 2.11b, making Rammel with embeded Lua 2.5.1...\n"
-	@printf "=========================================================\n"
-	$(MAKE) -f $(srcdir)/Makefile clobber tools cii lua-2.5.1 lua tex
-	@$(srcdir)/mkinstalldirs 2b/{c,lua,tex}
-	@$(call CP_C_LUA_TEX,2,b)
-	$(call MAKE_DVI,2,b)
+code :
+	$(call with_m_make_n,b,2)
 
-
-
-	@printf "=========================================================\n"
-	@printf "With noweb 2.11b, making Rammel with embeded Lua 3.2.2...\n"
-	@printf "=========================================================\n"
-	$(MAKE) -f $(srcdir)/Makefile clobber tools cii lua-3.2.2
-# TODO: understand the intended use of LUALIB; this vexes me.
-	$(MAKE) $(call Cf,,,c)   $(call fight,$(MARKUP) | $(NT),3) "LUA=${srcdir}/lua-3.2.2" "LUALIB=$(LIBEXEC)/lua-3.2.2"
-	$(MAKE) $(call Cf,,,lua) $(call fight,$(MARKUP) | $(NT),3)
-	$(MAKE) $(call Cf,,,tex) $(call fight,$(MARKUP) | $(NT),3)
-	@$(srcdir)/mkinstalldirs 3b/{c,lua,tex}
-	@$(call CP_C_LUA_TEX,3,b)
-	$(call MAKE_DVI,3,b)
-
-
-
-	$(call with_m_make_n,2,2)# Rammel with Lua 2->Rammel with Lua 2
-	$(call with_m_make_n,2,3)# Rammel with Lua 2->Rammel with Lua 3
-	$(call with_m_make_n,3,2)# Rammel with Lua 3->Rammel with Lua 2
-	$(call with_m_make_n,3,3)# Rammel with Lua 3->Rammel with Lua 3
-
-
+transfer : code
+	$(call with_m_make_n,b,3)
+	$(call with_m_make_n,2,2)
+	$(call with_m_make_n,2,3)
+	$(call with_m_make_n,3,2)
+	$(call with_m_make_n,3,3)
 
 # check differences
 	$(MAKE) clean checkclean checkdifferent checksame
-
-
-
-
 
 checkclean :
 	@echo "Let's see how different it is..."
@@ -237,13 +201,15 @@ install : code tex | $(if $(strip $(DESTDIR)$(BIN)),$(DESTDIR)$(BIN),$(error "$(
 	$(INSTALL_DATA) tex/noweb.sty $(DESTDIR)$(TEXINPUTS)/noweb.sty
 	$(INSTALL_DATA) tex/nwmac.tex $(DESTDIR)$(TEXINPUTS)/nwmac.tex
 
-
-
+uninstall :
+	rm -f $(DESTDIR)$(BIN)/{no,nwmtime}
+	rm -f $(DESTDIR)$(TEXINPUTS)/{noweb.sty,nwmac.tex}
+	rm -rf $(DESTDIR)$(LIBEXEC)
 
 soap = $(MAKE) --silent -C $(srcdir)/$(1) $(2);
 clean :
-	@$(foreach d,c lua tools cii,$(call soap,$(d),clean))
+	$(foreach d,c lua tools cii,$(call soap,$(d),clean))
 
 clobber : clean
-	@$(foreach d,c lua tools cii,$(call soap,$(d),clobber))
-	-@rm -f *~
+	$(foreach d,c lua tools cii,$(call soap,$(d),clobber))
+	rm -f *~

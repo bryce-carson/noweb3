@@ -2,7 +2,7 @@
 
 LUA= ../..
 
-include $(LUA)/config
+include $(srcdir)/../config
 
 # actually only used in liolib.c
 EXTRA_DEFS= $(POPEN)

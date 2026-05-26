@@ -11,7 +11,7 @@ noweb.sty nwmac.tex: $(srcdir)/support.nw
 	$(NOTANGLE) $< $(TANGLEOPTS) -R$@ $(CPIF) $@
 
 support.tex: $(srcdir)/support.nw
-	no weave -delay -x $< $(CPIF) support.tex
+	$(NOWEAVE) -delay -x $< $(CPIF) $@
 
 clean:
 	-rm -f *~ *.dvi *.aux *.log *.blg *.bbl *.toc

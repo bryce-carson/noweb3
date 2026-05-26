@@ -2,7 +2,7 @@
 
 LUA= ../..
 
-include $(LUA)/config
+include $(srcdir)/../config
 
 EXTRA_DEFS= $(POSIX)
 

@@ -54,6 +54,5 @@ mathlib.o : mathlib.c lualib.h lua.h
 
 
 
-clear :
-	rm -f *.o
-	rm -f parser.c parser.h y.tab.c y.tab.h
+clean :
+	rm -f *.o parser.c parser.h y.tab.c y.tab.h

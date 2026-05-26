@@ -2,7 +2,7 @@
 
 LUA= ../..
 
-include $(LUA)/config
+include $(srcdir)/../config
 
 INCS= -I$(INC) $(EXTRA_INCS) -I..
 OBJS= dump.o luac.o opcode.o opt.o print.o stubs.o test.o

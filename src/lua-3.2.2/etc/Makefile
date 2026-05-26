@@ -1,8 +1,10 @@
+override srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override VPATH := $(srcdir)
 # makefile for etc
 
 LUA= ..
 
-include $(LUA)/config
+include $(srcdir)/../config
 
 ALL= bin2c min trace
 

@@ -48,7 +48,6 @@ stages.c stages.h strsave.c strsave.h sys.c sys.h util.c util.h xpipe-lua.c     
 xpipe-lua.h xpipe.c xpipe.h
 
 
-
 all : no nwmtime
 
 
@@ -59,12 +58,12 @@ dvi : doc.tex allcode.tex
 	@echo "Building the literate program and user documentation..."
 	@echo "Building the literate program will likey fail if you have not built and installed the installed the program already."
 	@echo "Building the literate program and user documentation requires John Collins' latexmk."
-	TEXMF=$(TEXMF_DIR) latexmk $(LATEXMK_OPTS) -output-directory=. doc.tex
+	-latexmk -interaction=nonstopmode doc.tex
 
 nwmtime : $(NWMTIMEOBJS)
 	$(CC) $(filter-out -c,$(CFLAGS)) $(CPPFLAGS) $(LDFLAGS) $(NWMTIMEOBJS) -o $@
 
-no: LIB = $(addprefix ../,cii/libcii.so $(LUA_VERSION)/liblua.so $(LUA_VERSION)/liblualib.so)
+no: LIB = ../cii/libcii.so ../$(LUA_VERSION)/liblua.so ../$(LUA_VERSION)/liblualib.so
 no : $(NOOBJS) $(LIB)
 	$(CC) $(filter-out -c,$(CFLAGS)) $(XCFLAGS) $(CPPFLAGS) $(XINCLUDES) $(LDFLAGS) -lm $(NOOBJS) $(LIBPROLOGUE) $(LIB) $(LIBEPILOGUE) -o $@
 
@@ -72,10 +71,10 @@ touch : $(SRCS)
 	touch $(SRCS)
 
 clean :
-	-rm -f $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(wildcard nwbuffer-lua* allcode.tex doc.tex)
+	rm -f $(NOOBJS) $(NWMTIMEOBJS) $(SRCS) $(wildcard nwbuffer-lua* allcode.tex doc.tex)
 
 clobber : clean
-	-rm -f no nwmtime doc.dvi
+	rm -f no nwmtime doc.dvi
 
 doc.tex : doc.nw
 	cp $< $@
@@ -86,8 +85,7 @@ nwbuffer nwmtime nwprocess nwtime recognize strsave xpipe                       
 xpipe-lua)
 
 allcode.tex : $(FILES)
-	no weave -ifilter "Stages.elide, 'hackers:*'" -n -index $(FILES) > $@
-
+	$(NOWEAVE) -ifilter "Stages.elide, 'hackers:*'" -n -index $^ > $@
 
 # Define a metarule so rules aren't needed for each object file.
 .c.o : ;

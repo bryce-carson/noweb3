@@ -9,10 +9,10 @@ OBJS=$(TANGLEOBJS) $(MARKUPOBJS) nocond.o tie.o
 all: markup nocond nt tie
 
 clean:
-	-rm -f $(OBJS)
+	rm -f $(OBJS)
 
 clobber: clean
-	-rm -f $(addprefix ,markup nocond nt tie)
+	rm -f markup nocond nt tie
 
 
 

@@ -1,8 +1,10 @@
+override srcdir := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override VPATH := $(srcdir)
 # makefile for lua distribution (includes)
 
 LUA= ..
 
-include $(LUA)/config
+include $(srcdir)/../config
 
 SRCS= lua.h lualib.h luadebug.h lauxlib.h
 
